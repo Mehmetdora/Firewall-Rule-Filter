@@ -24,7 +24,7 @@ function App() {
   const handleCloseBtnClick = () => {
     setRuleEditModalOpen(false);
     setSelectedItem(null);
-    console.log("Edit modal closed");
+    console.log("Edit modall closed");
   };
 
   return (
