@@ -2,7 +2,7 @@ import { Description } from "@headlessui/react";
 import React from "react";
 import { useState } from "react";
 
-function CustomModal({ isOpen, onClose, item, items }) {
+function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
   if (!isOpen) return null;
 
   var [title, setTitle] = useState(item?.title || "");
@@ -54,17 +54,62 @@ function CustomModal({ isOpen, onClose, item, items }) {
 
     console.log("Updated item:", item);
 
+    saveRuleToServer();
+
     onClose();
   }
 
-  const handleDelete = () => {
-    console.log("Delete item:", item);
-    items = items.filter((i) => i.id !== item.id); // Remove the item from the list
-    console.log("Items after deletion:", items);
+  // Kaydedilen verilerin server a gönderilmesi
 
-    // Here you would typically call an API to delete the item
-    onClose();
-  };
+  function saveRuleToServer() {
+    console.log("istek atıldı");
+
+    fetch("http://localhost:5050/rules/edited", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: item?.id,
+        title,
+        message: description,
+        time: new Date().toISOString(),
+        kaynak_guvenlikbolgesi: {
+          value: kaynak_guvenlikbolgesi,
+          isChecked: checked.kaynakBolge,
+        },
+        hedef_guvenlikbolgesi: {
+          value: hedef_guvenlikbolgesi,
+          isChecked: checked.hedefBolge,
+        },
+        kaynak_adresi: {
+          value: kaynak_adresi,
+          isChecked: checked.kaynakAdres,
+        },
+        hedef_adresi: {
+          value: hedef_adresi,
+          isChecked: checked.hedefAdres,
+        },
+        servisler,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Rule saved successfully:", data);
+      })
+      .catch(async (error) => {
+        const errorText = await error.text?.();
+        console.error("Error saving rule:", errorText || error);
+        console.error("Error details:", error);
+        console.error("Error saving rule:", error);
+        alert("Error saving rule. Please try again.");
+      });
+  }
 
   const [checked, setChecked] = useState({
     kaynakBolge: item?.kaynak_guvenlikbolgesi.isChecked,
@@ -281,7 +326,7 @@ function CustomModal({ isOpen, onClose, item, items }) {
           </button>
           <button
             onClick={() => {
-              alert("silme işlemi henüz eklenmedi");
+              deleteItem(item);
               onClose();
             }}
             className="bg-red-500 text-white px-4 py-2 rounded"
@@ -294,4 +339,4 @@ function CustomModal({ isOpen, onClose, item, items }) {
   );
 }
 
-export default CustomModal;
+export default RuleEditModal;

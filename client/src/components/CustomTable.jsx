@@ -1,33 +1,12 @@
 import { useState } from "react";
 import EditButton from "./EditButton";
 
-const rules = [
-    {
-      id: 1,
-      title: "Firewall Rule 1",
-      message: "Rule 1 ",
-      time: "3 weeks ago",
-      kaynak_guvenlikbolgesi: {value: "LAN",isChecked: true},
-      hedef_guvenlikbolgesi: {value: "LAN",isChecked: true},
-      kaynak_adresi: {value: "122.22.2.2",isChecked: true},
-      hedef_adresi: {value: "122.22.2.2",isChecked: true},
-      servisler: "HTTPS",
-    },
-    {
-      id: 2,
-      title: "Firewall Rule 2",
-      message: "Rule 2",
-      time: "3 weeks ago",
-      kaynak_guvenlikbolgesi: {value: "LAN",isChecked: true},
-      hedef_guvenlikbolgesi: {value: "LAN",isChecked: true},
-      kaynak_adresi: {value: "122.22.2.2",isChecked: true},
-      hedef_adresi: {value: "333.22.21.2",isChecked: true},
-      servisler: "HTTP",
-    },
-  ];
+//ruler verilerini sunucudan al
 
-export default function CustomTable({ onEditClick }) {
+export default function CustomTable({ onEditClick ,rules}) {
   
+  
+
   
 
   return (
@@ -42,17 +21,19 @@ export default function CustomTable({ onEditClick }) {
           </div>
 
           {/* Sol taraf: Bildirim içeriği */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+          <div className="flex items-start w-full">
+            <h2 className="text-md ml-4 font-semibold text-gray-800 uppercase tracking-wide">
               {item.title}
             </h2>
-            <p className="text-gray-600 text-sm mt-1">{item.message}</p>
-            <span className="text-gray-400 text-xs">{item.time}</span>
+            <div className="ml-4 flex-1">
+              <p className="text-gray-600 text-sm mt-1">{item.message}</p>
+              <span className="text-gray-400 text-xs">{item.time}</span>
+            </div>
           </div>
 
           {/* Sağ taraf: Edit butonu */}
 
-          <EditButton onClick={() => onEditClick(item)} ></EditButton>
+          <EditButton onClick={() => onEditClick(item)}></EditButton>
           {/* <button
             onClick={handleEdit(item.id)}
             className="ml-4 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
