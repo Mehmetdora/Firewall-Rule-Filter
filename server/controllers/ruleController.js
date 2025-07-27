@@ -26,6 +26,19 @@ const rules = [
   },
 ];
 
+export function getRules(req, res) {
+  // Tüm rule değerlerini gerekli bilgileri ile birlikte al
+
+  // rules verilerini db den al
+
+  return res.status(200).json({
+    message: "Rules fetched successfully",
+    rules: rules,
+  });
+}
+
+
+
 // DB den veri çekme fonk.
 function getRulesFromDB() {
   const db = pgp("postgres://postgres:@host:5432/firewall_db");
@@ -40,16 +53,6 @@ function getRulesFromDB() {
     });
 }
 
-export function getRules(req, res) {
-  // Tüm rule değerlerini gerekli bilgileri ile birlikte al
-
-  // rules verilerini db den al
-
-  return res.status(200).json({
-    message: "Rules fetched successfully",
-    rules: rules,
-  });
-}
 
 export function createdRule(req, res) {
   const schema = Joi.object({

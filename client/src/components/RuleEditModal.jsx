@@ -1,5 +1,3 @@
-import { Description } from "@headlessui/react";
-import React from "react";
 import { useState } from "react";
 
 function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
@@ -19,9 +17,9 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
   );
 
   var [hedef_adresi, setHedefAdresi] = useState(item?.hedef_adresi.value || "");
-
   const [servisler, setServisler] = useState(item?.servisler || "");
 
+  // save butonu ile verilerin kaydedilmesi ve listenin güncellenmesi
   function handleSave() {
     if (
       !title ||
@@ -60,7 +58,6 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
   }
 
   // Kaydedilen verilerin server a gönderilmesi
-
   function saveRuleToServer() {
     console.log("istek atıldı");
 
@@ -119,7 +116,7 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
     servisler: false,
   });
 
-  const handleChange = (e) => {
+  const handleCheckButtons = (e) => {
     const { name, checked: isChecked } = e.target;
 
     setChecked((prev) => ({
@@ -173,7 +170,7 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
                 id="checkbox-kaynak-bolge"
                 name="kaynakBolge"
                 checked={checked.kaynakBolge}
-                onChange={handleChange}
+                onChange={handleCheckButtons}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="checkbox-kaynak-bolge" className="cursor-pointer">
@@ -205,7 +202,7 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
                 id="checkbox-hedef-bolge"
                 name="hedefBolge"
                 checked={checked.hedefBolge}
-                onChange={handleChange}
+                onChange={handleCheckButtons}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="checkbox-hedef-bolge" className="cursor-pointer">
@@ -237,7 +234,7 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
                 id="checkbox-kaynak-adres"
                 name="kaynakAdres"
                 checked={checked.kaynakAdres}
-                onChange={handleChange}
+                onChange={handleCheckButtons}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="checkbox-kaynak-adres" className="cursor-pointer">
@@ -263,7 +260,7 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
                 id="checkbox-hedef-adres"
                 name="hedefAdres"
                 checked={checked.hedefAdres}
-                onChange={handleChange}
+                onChange={handleCheckButtons}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="checkbox-hedef-adres" className="cursor-pointer">
@@ -289,7 +286,7 @@ function RuleEditModal({ isOpen, onClose, item, deleteItem }) {
                 id="checkbox-servisler"
                 name="servisler"
                 checked={checked.servisler}
-                onChange={handleChange}
+                onChange={handleCheckButtons}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="checkbox-servisler" className="cursor-pointer">

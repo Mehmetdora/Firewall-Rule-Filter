@@ -1,8 +1,6 @@
-import { Description } from "@headlessui/react";
-import React from "react";
 import { useState } from "react";
 
-export function RuleCreateModal({ isOpen, onClose }) {
+export default function RuleCreateModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   var item = {

@@ -9,7 +9,7 @@ const app = express();
 // 1. Önce CORS - tüm metodlara izin ver
 app.use(
   cors({
-    origin: "*",
+    origin: "http://localhost:5173", // Vite dev server URL
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })

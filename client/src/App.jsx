@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "./App.css";
+import apiClient from "./api/api.js";
 
 import RuleEditModal from "./components/RuleEditModal.jsx";
 import CustomTable from "./components/CustomTable.jsx";
@@ -56,37 +57,33 @@ function App() {
   }
 
   const handleDelete = (selectedItem) => {
-    fetch("http://localhost:5050/rules/deleted", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: selectedItem?.id,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
+    // axios ile istek atarken yapısı : axios.post(url, data, config); olmalı
+    // eğer yeni bir axios ayarı yapılmışsa onu kullan.
+    apiClient
+      .post(
+        "/rules/deleted",
+        {
+          id: selectedItem?.id,
+        },
+
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
-        return response.json();
-      })
-      .then((data) => {
+      )
+      .then((res) => {
+        // axios otomatik olarak json a parse eder
         setRules((prevRules) =>
           prevRules.filter((rule) => rule.id !== selectedItem.id)
         );
-
-        console.log(data.message, data);
+        console.log("Rule deleted successfully:");
       })
       .catch(async (error) => {
         const errorText = await error.text?.();
         console.error("Error: delete rule:", errorText || error);
         alert("Error deleting rule. Please try again.");
       });
-
-    // Here you would typically call an API to delete the item
-
-    //buradan da item silinecek
   };
 
   return (
@@ -107,7 +104,6 @@ function App() {
         <RuleCreateModal
           isOpen={createRuleModalOpen}
           onClose={() => setCreateRuleModalOpen(false)}
-          
         ></RuleCreateModal>
 
         <RuleGroupModal
