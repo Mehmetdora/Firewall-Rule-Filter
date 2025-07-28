@@ -1,35 +1,30 @@
-import Joi from "joi";
-import pgp from "pg-promise";
+import Joi, { func } from "joi";
+import pool from "../DB/db.js";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
-const rules = [
-  {
-    id: 1,
-    title: "Deneme Rule 1",
-    message: "Rule 1 ",
-    time: "3 weeks ago",
-    kaynak_guvenlikbolgesi: { value: "LAN", isChecked: true },
-    hedef_guvenlikbolgesi: { value: "LAN", isChecked: true },
-    kaynak_adresi: { value: "122.22.2.2", isChecked: true },
-    hedef_adresi: { value: "122.22.2.2", isChecked: true },
-    servisler: "HTTPS",
-  },
-  {
-    id: 2,
-    title: "Firewall Rule 2",
-    message: "Rule 2",
-    time: "3 weeks ago",
-    kaynak_guvenlikbolgesi: { value: "LAN", isChecked: true },
-    hedef_guvenlikbolgesi: { value: "LAN", isChecked: true },
-    kaynak_adresi: { value: "122.22.2.2", isChecked: true },
-    hedef_adresi: { value: "333.22.21.2", isChecked: true },
-    servisler: "HTTP",
-  },
-];
 
-export function getRules(req, res) {
+const rules = []; // veritabanından alınan rule listesi
+
+export async function getRules(req, res) {
   // Tüm rule değerlerini gerekli bilgileri ile birlikte al
 
   // rules verilerini db den al
+
+  try {
+    // sorgular yazılırken her tablo ismi için çift tırnak kullanılmalı
+    const result = await pool.query(
+      'SELECT * FROM "public"."tb_guvenlikKurallari"'
+    ); // tablonun adını değiştir
+
+    console.log(result);
+
+    res.json({ rules: result.rows });
+  } catch (err) {
+    console.error("Veri alınırken hata oluştu:", err);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
 
   return res.status(200).json({
     message: "Rules fetched successfully",
@@ -37,29 +32,12 @@ export function getRules(req, res) {
   });
 }
 
-
-
-// DB den veri çekme fonk.
-function getRulesFromDB() {
-  const db = pgp("postgres://postgres:@host:5432/firewall_db");
-
-  db.one("SELECT $1 AS value", 123)
-    .then((data) => {
-      console.log("DB'den alınan değer:", data.value);
-      return data.value;
-    })
-    .catch((error) => {
-      console.log("ERROR:", error);
-    });
-}
-
-
 export function createdRule(req, res) {
+  // validation işlemleri
+
   const schema = Joi.object({
-    id: Joi.number().required(),
     title: Joi.string().required(),
     message: Joi.string().required(),
-    time: Joi.string().required(),
     kaynak_guvenlikbolgesi: Joi.object({
       value: Joi.string().required(),
       isChecked: Joi.boolean().required(),
@@ -83,27 +61,35 @@ export function createdRule(req, res) {
 
   if (error) {
     console.log("Validation error:", error.details);
-    return res.status(400).json({ error: error.details });
+    return res.status(400).json({ errorMsg: error.details });
   }
 
   console.log("Validated Body:", value);
 
-  var rule = rules.find((r) => r.id === value.id);
-  if (rule) {
-    rule.title = value.title;
-    rule.message = value.message;
-    rule.time = value.time;
-    rule.kaynak_guvenlikbolgesi = value.kaynak_guvenlikbolgesi;
-    rule.hedef_guvenlikbolgesi = value.hedef_guvenlikbolgesi;
-    rule.kaynak_adresi = value.kaynak_adresi;
-    rule.hedef_adresi = value.hedef_adresi;
-    rule.servisler = value.servisler;
-  } else {
-    res.status(404).json({ error: "Rule not found" });
-    return;
-  }
+  let newRule = {
+    title: "",
+    message: "",
+    time: "",
+    kaynak_guvenlikbolgesi: "",
+    hedef_guvenlikbolgesi: "",
+    kaynak_adresi: "",
+    hedef_adresi: "",
+    servisler: "",
+  };
 
-  return res.status(200).json({ message: "Kural başarıyla düzenlendi." });
+  newRule.title = value.title;
+  newRule.message = value.message;
+  newRule.time = "3 weeks ago";
+  newRule.kaynak_guvenlikbolgesi = value.kaynak_guvenlikbolgesi;
+  newRule.hedef_guvenlikbolgesi = value.hedef_guvenlikbolgesi;
+  newRule.kaynak_adresi = value.kaynak_adresi;
+  newRule.hedef_adresi = value.hedef_adresi;
+  newRule.servisler = value.servisler;
+
+  rules.push(newRule);
+  console.log("yeni rules listesi:" + rules);
+
+  return res.status(200).json({ message: "Kural başarıyla eklendi." });
 }
 
 export function editedRule(req, res) {
@@ -170,4 +156,19 @@ export function deleteRule(req, res) {
 
   rules.splice(ruleIndex, 1);
   return res.status(200).json({ message: "Rule deleted successfully" });
+}
+
+
+export function uploadSqlFile(req, res) {
+  if (!req.file) {
+    return res.status(400).json({ message: "Dosya yüklenemedi." });
+  }
+
+  const filePath = path.join("uploads", req.file.filename);
+
+  // Dosya içeriğini okuma (opsiyonel: direkt çalıştırma, kaydetme vs. için)
+  const content = fs.readFileSync(filePath, "utf8");
+  console.log("Yüklenen SQL dosyasının içeriği:\n", content);
+
+  return res.status(200).json({ message: "Dosya başarıyla yüklendi!" });
 }

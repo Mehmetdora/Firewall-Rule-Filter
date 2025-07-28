@@ -9,6 +9,7 @@ import GroupRulesButton from "./components/GroupRulesButton.jsx";
 import RuleGroupModal from "./components/RuleGroupModal.jsx";
 import CreateRuleButton from "./components/CreateRuleButton.jsx";
 import RuleCreateModal from "./components/RuleCreateModal.jsx";
+import DatabaseUpload from "./components/DatabaseUpload.jsx";
 
 function App() {
   const [ruleEditModalOpen, setRuleEditModalOpen] = useState(false);
@@ -86,6 +87,75 @@ function App() {
       });
   };
 
+  const createRuleToServer = (newItem) => {
+    console.log("Gelen yeni rule verileri: " + newItem);
+
+    try {
+      apiClient
+        .post(
+          "/rules/created",
+
+          {
+            id: newItem?.id,
+            title: newItem.title,
+            message: newItem.message,
+            kaynak_guvenlikbolgesi: {
+              value: newItem.kaynak_guvenlikbolgesi.value,
+              isChecked: newItem.kaynak_guvenlikbolgesi.checked,
+            },
+            hedef_guvenlikbolgesi: {
+              value: newItem.hedef_guvenlikbolgesi.value,
+              isChecked: newItem.hedef_guvenlikbolgesi.checked,
+            },
+            kaynak_adresi: {
+              value: newItem.kaynak_adresi.value,
+              isChecked: newItem.kaynak_adresi.checked,
+            },
+            hedef_adresi: {
+              value: newItem.hedef_adresi.value,
+              isChecked: newItem.hedef_adresi.checked,
+            },
+            servisler: newItem.servisler,
+          },
+
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        )
+        .then((response) => {
+          console.log("Rule saved successfully:", response.data);
+          rules.push(response.data.newItem);
+        })
+        .catch(async (error) => {
+          console.log("axios için hataaaaa");
+
+          if (error.response) {
+            // Sunucudan gelen hatadır
+
+            console.log("sunucuuuu");
+            console.log(
+              "Sunucu hatası:",
+              error.response.data.errorMsg[0].message
+            );
+            alert("HATA: " + error.response.data.errorMsg[0].message); // örneğin: "email is required"
+          } else if (error.request) {
+            // İstek gönderildi ama cevap alınamadı
+            console.log("cevap yooookk");
+            console.log("Sunucu yanıt vermedi:", error.request);
+          } else {
+            // İstek hazırlanırken hata
+            console.log("axioooooosssss");
+            console.log("Axios hata:", error.message);
+          }
+        });
+    } catch (error) {
+      console.log("try-catch hatası");
+      console.log("hata:" + error.response.data);
+    }
+  };
+
   return (
     <>
       <div>
@@ -94,16 +164,22 @@ function App() {
 
         <AnalizButton></AnalizButton>
 
-        <div className="flex justify-end mb-4">
-          <CreateRuleButton
-            onClick={() => setCreateRuleModalOpen(true)}
-          ></CreateRuleButton>
+        {/* 
+            ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
+            SADECE ÇAKIŞMA ANALİZİ ÜZERİNDE DUR
+        */}
+
+        {/* <div className="flex justify-end mb-4">
           <GroupRulesButton onClick={() => setRuleGroupEditModalOpen(true)} />
         </div>
 
+        <CreateRuleButton
+          onClick={() => setCreateRuleModalOpen(true)}
+        ></CreateRuleButton>
         <RuleCreateModal
           isOpen={createRuleModalOpen}
           onClose={() => setCreateRuleModalOpen(false)}
+          createRuleToServer={createRuleToServer}
         ></RuleCreateModal>
 
         <RuleGroupModal
@@ -116,7 +192,11 @@ function App() {
           onClose={handleCloseBtnClick}
           item={selectedItem}
           deleteItem={handleDelete}
-        ></RuleEditModal>
+        ></RuleEditModal> */}
+
+        <div>
+          <DatabaseUpload></DatabaseUpload>
+        </div>
 
         <div className="table-view">
           <CustomTable onEditClick={handleEditBtnClick} rules={rules} />

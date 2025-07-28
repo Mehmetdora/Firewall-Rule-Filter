@@ -1,9 +1,14 @@
 import { useState } from "react";
+import apiClient from "../api/api";
 
-export default function RuleCreateModal({ isOpen, onClose }) {
+export default function RuleCreateModal({
+  isOpen,
+  onClose,
+  createRuleToServer,
+}) {
   if (!isOpen) return null;
 
-  var item = {
+  var newItem = {
     title: "",
     message: "",
     kaynak_guvenlikbolgesi: { value: "", isChecked: false },
@@ -34,87 +39,39 @@ export default function RuleCreateModal({ isOpen, onClose }) {
       return;
     }
 
-    item.title = title;
-    item.message = description;
-    item.kaynak_guvenlikbolgesi = {
+    
+
+    newItem.title = title;
+    newItem.message = description;
+    newItem.kaynak_guvenlikbolgesi = {
       value: kaynak_guvenlikbolgesi,
       isChecked: checked.kaynakBolge,
     };
-    item.hedef_guvenlikbolgesi = {
+    newItem.hedef_guvenlikbolgesi = {
       value: hedef_guvenlikbolgesi,
       isChecked: checked.hedefBolge,
     };
-    item.kaynak_adresi = {
+    newItem.kaynak_adresi = {
       value: kaynak_adresi,
       isChecked: checked.kaynakAdres,
     };
-    item.hedef_adresi = { value: hedef_adresi, isChecked: checked.hedefAdres };
-    item.servisler = servisler;
+    newItem.hedef_adresi = { value: hedef_adresi, isChecked: checked.hedefAdres };
+    newItem.servisler = servisler;
 
-    console.log("Created item:", item);
+    console.log("New created item:", newItem);
 
-    createRuleToServer();
+    createRuleToServer(newItem);
 
     onClose();
   }
 
   // Kaydedilen verilerin server a gönderilmesi
 
-  function createRuleToServer() {
-    console.log("istek atıldı");
-
-    fetch("http://localhost:5050/rules/created", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: item?.id,
-        title,
-        message: description,
-        time: new Date().toISOString(),
-        kaynak_guvenlikbolgesi: {
-          value: kaynak_guvenlikbolgesi,
-          isChecked: checked.kaynakBolge,
-        },
-        hedef_guvenlikbolgesi: {
-          value: hedef_guvenlikbolgesi,
-          isChecked: checked.hedefBolge,
-        },
-        kaynak_adresi: {
-          value: kaynak_adresi,
-          isChecked: checked.kaynakAdres,
-        },
-        hedef_adresi: {
-          value: hedef_adresi,
-          isChecked: checked.hedefAdres,
-        },
-        servisler,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("Rule saved successfully:", data);
-      })
-      .catch(async (error) => {
-        const errorText = await error.text?.();
-        console.error("Error saving rule:", errorText || error);
-        console.error("Error details:", error);
-        console.error("Error saving rule:", error);
-        alert("Error saving rule. Please try again.");
-      });
-  }
-
   const [checked, setChecked] = useState({
-    kaynakBolge: item?.kaynak_guvenlikbolgesi.isChecked,
-    hedefBolge: item?.hedef_guvenlikbolgesi.isChecked,
-    kaynakAdres: item?.kaynak_adresi.isChecked,
-    hedefAdres: item?.hedef_adresi.isChecked,
+    kaynakBolge: newItem?.kaynak_guvenlikbolgesi.isChecked,
+    hedefBolge: newItem?.hedef_guvenlikbolgesi.isChecked,
+    kaynakAdres: newItem?.kaynak_adresi.isChecked,
+    hedefAdres: newItem?.hedef_adresi.isChecked,
     servisler: false,
   });
 
@@ -305,7 +262,10 @@ export default function RuleCreateModal({ isOpen, onClose }) {
             Close
           </button>
           <button
-            onClick={() => saveRule}
+            onClick={() => {
+              saveRule();
+              alert("created clicked");
+            }}
             className="bg-green-500 text-white px-4 py-2 rounded"
           >
             Save
