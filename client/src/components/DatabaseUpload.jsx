@@ -1,10 +1,13 @@
 import { useState } from "react";
+import apiClient from "../api/api";
+import axios from "axios";
 
 export default function DatabaseUpload() {
   // Kullanıcı bir database dosyası (.sql) yüklemesi için kullanılacak komponent
 
   const [file, setFile] = useState();
   const [message, setMessage] = useState("");
+  const [rules, setRules] = useState();
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -23,39 +26,51 @@ export default function DatabaseUpload() {
     }
 
     const formData = new FormData();
-    formData.append("sqlFile", file);
+    formData.append("sqlfile", file); // gönderilecek olan dosyanın adı ve kendisi
     try {
       const response = await axios.post(
         "http://localhost:5050/rules/upload-sql-file",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+        formData
       );
 
       setMessage(response.data.message);
+      setRules(response.data.rules);
     } catch (error) {
-      console.error("Yükleme hatası:", error);
-      setMessage("Dosya yüklenemedi.");
+      if (error.response) {
+        // Sunucu yanıt verdi ama hata koduyla
+        console.error("Sunucu hatası:", error.response.data);
+        setMessage("Sunucu hatası: " + error.response.data.error);
+      } else if (error.request) {
+        // İstek yapıldı ama yanıt alınamadı
+        console.error("Yanıt alınamadı:", error.request);
+        setMessage("Yanıt alınamadı.");
+      } else {
+        // Başka bir hata
+        console.error("İstek yapılamadı:", error.message);
+        setMessage("İstek hatası: " + error.message);
+      }
     }
   };
 
   return (
     <>
       <div className="p-4 border rounded-md shadow-md max-w-md mx-auto">
-        <h2 className="text-xl font-bold mb-2">SQL Dosyası Yükle</h2>
-        <input type="file" accept=".sql" onChange={handleFileChange} />
+        <h4 className="text-m font-bold mb-4">
+          Analiz Edilecek SQL Dosyasını Yükleyiniz
+        </h4>
+        <input
+          className="bg-amber-100 rounded-xl text-red-400 font-bold p-4"
+          type="file"
+          accept=".sql"
+          onChange={handleFileChange}
+        />
         <button
           onClick={handleUpload}
           className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Yükle
         </button>
-        {message && (
-          <p className="mt-2 text-green-700">{message}</p>
-        )}
+        {message && <p className="mt-2 text-green-700">{message}</p>}
       </div>
     </>
   );

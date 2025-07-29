@@ -160,15 +160,16 @@ function App() {
     <>
       <div>
         {/* <Navbar /> */}
-        <h5 className="text-2xl font-bold mb-4">Firewall Rule App</h5>
-
-        <AnalizButton></AnalizButton>
-
+        <h5 className="text-2xl font-bold mb-4">
+          Firewall Rule Conflict Analysis
+        </h5>
+        <div className="mr-0 pr-0 text-end">
+          <AnalizButton></AnalizButton>
+        </div>
         {/* 
             ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
             SADECE ÇAKIŞMA ANALİZİ ÜZERİNDE DUR
         */}
-
         {/* <div className="flex justify-end mb-4">
           <GroupRulesButton onClick={() => setRuleGroupEditModalOpen(true)} />
         </div>
@@ -194,10 +195,7 @@ function App() {
           deleteItem={handleDelete}
         ></RuleEditModal> */}
 
-        <div>
-          <DatabaseUpload></DatabaseUpload>
-        </div>
-
+        <DatabaseUpload></DatabaseUpload>
         <div className="table-view">
           <CustomTable onEditClick={handleEditBtnClick} rules={rules} />
         </div>
