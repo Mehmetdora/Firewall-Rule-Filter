@@ -3,30 +3,43 @@ import cors from "cors";
 import dotenv from "dotenv";
 import ruleRoutes from "./routes/rule.js";
 
-dotenv.config();
+import {
+  createdRule,
+  deleteRule,
+  editedRule,
+  getRules,
+} from "./controllers/ruleController.js";
 
+dotenv.config();
 const app = express();
 
-// 1. Önce CORS - tüm metodlara izin ver
+// 1. CORS
+
+app.use((req, res, next) => {
+  // upload url'inde ayarları değiştir
+  if (req.url.includes("upload")) {
+    // TCP optimizasyonları
+    req.socket.setNoDelay(true);
+    req.socket.setKeepAlive(true);
+    req.socket.setTimeout(900000); // 5 dakika timeout
+
+    // Buffer size artır
+    req.socket.setMaxListeners(0);
+  }
+  next();
+});
+
 app.use(
   cors({
-    origin: "http://localhost:5173", // client url
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
 
-// 2. Sonra JSON body parser
 app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ limit: "200mb", extended: true }));
 
-// 3. Route'lardan önce istek loglama (test için)
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
-
-// 4. Route'lar
-
+// 4. Routes
 app.get("/deneme", (req, res) => res.send("Deneme çalışıyor"));
 app.use("/rules", ruleRoutes);
 
@@ -37,7 +50,6 @@ const server = app
     console.error("❌ Server start error:", err);
   });
 
-// Timeout'ları artır
-server.timeout = 300000; // 5 dakika
-server.keepAliveTimeout = 300000;
-server.headersTimeout = 300000;
+server.timeout = 900000;
+server.keepAliveTimeout = 900000;
+server.headersTimeout = 900000;

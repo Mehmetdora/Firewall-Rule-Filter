@@ -8,8 +8,6 @@ export default function CustomTable({ onEditClick, rules }) {
           key={item.id}
           className="bg-gray-50 hover:bg-gray-100 border rounded-lg shadow-sm p-4 flex justify-between items-start"
         >
-          
-
           {/* <div className="flex items-start w-full">
             <h2 className="text-md ml-4 font-semibold text-gray-800 uppercase tracking-wide">
               Kaynak Adresi:

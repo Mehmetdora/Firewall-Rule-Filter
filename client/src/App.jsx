@@ -196,9 +196,9 @@ function App() {
         ></RuleEditModal> */}
 
         <DatabaseUpload></DatabaseUpload>
-        <div className="table-view">
+        {/* <div className="table-view">
           <CustomTable onEditClick={handleEditBtnClick} rules={rules} />
-        </div>
+        </div> */}
       </div>
     </>
   );

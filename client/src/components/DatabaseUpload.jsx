@@ -25,28 +25,67 @@ export default function DatabaseUpload() {
       return;
     }
 
+    console.log(
+      "---- Upload başlıyor...",
+      file.name,
+      `${Math.round(file.size / 1024 / 1024)}MB`
+    );
+    const startTime = Date.now();
+
     const formData = new FormData();
-    formData.append("sqlfile", file); // gönderilecek olan dosyanın adı ve kendisi
+    formData.append("sqlfile", file);
+
     try {
       const response = await axios.post(
         "http://localhost:5050/rules/upload-sql-file",
-        formData
+        formData,
+        {
+          timeout: 900000, // 15 dakika
+
+          onUploadProgress: (progressEvent) => {
+            const now = Date.now();
+            let lastUpdate = 0;
+
+            if (now - lastUpdate > 1000) {
+              // 500ms'de bir güncelle
+              lastUpdate = now;
+              // güncelleme işlemleri
+              const progress = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              const elapsed = (Date.now() - startTime) / 1000;
+              const speedMBps = progressEvent.loaded / 1024 / 1024 / elapsed;
+
+              console.log(
+                `---- Upload progress: ${progress}% - ${speedMBps.toFixed(
+                  2
+                )}MB/s`
+              );
+              setMessage(
+                `Yükleniyor: ${progress}% (${speedMBps.toFixed(2)}MB/s)`
+              );
+            }
+          },
+        }
       );
+
+      const elapsed = (Date.now() - startTime) / 1000;
+      console.log(`---- Upload tamamlandı: ${elapsed.toFixed(2)}s`);
 
       setMessage(response.data.message);
       setRules(response.data.rules);
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla
-        console.error("Sunucu hatası:", error.response.data);
+        console.error("---- Sunucu hatası:", error.response.data);
         setMessage("Sunucu hatası: " + error.response.data.error);
       } else if (error.request) {
         // İstek yapıldı ama yanıt alınamadı
-        console.error("Yanıt alınamadı:", error.request);
+        console.error("---- Yanıt alınamadı:", error.request);
         setMessage("Yanıt alınamadı.");
       } else {
         // Başka bir hata
-        console.error("İstek yapılamadı:", error.message);
+        console.error("---- İstek yapılamadı:", error.message);
         setMessage("İstek hatası: " + error.message);
       }
     }
