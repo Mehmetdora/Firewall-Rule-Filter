@@ -10,12 +10,17 @@ import RuleGroupModal from "./components/RuleGroupModal.jsx";
 import CreateRuleButton from "./components/CreateRuleButton.jsx";
 import RuleCreateModal from "./components/RuleCreateModal.jsx";
 import DatabaseUpload from "./components/DatabaseUpload.jsx";
+import axios from "axios";
 
 function App() {
   const [ruleEditModalOpen, setRuleEditModalOpen] = useState(false);
   const [ruleGroupEditModalOpen, setRuleGroupEditModalOpen] = useState(false);
   const [createRuleModalOpen, setCreateRuleModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+
+  const [rules, setRules] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  // Rule kayıtlarını yüklenecek olan sql dosyası içerisindeki kayıtlardan al
 
   const handleEditBtnClick = (item) => {
     setSelectedItem(item);
@@ -35,10 +40,8 @@ function App() {
   };
 
   useEffect(() => {
-    getRules();
+    //getRules();
   }, []);
-
-  const [rules, setRules] = useState([]);
 
   function getRules() {
     fetch("http://localhost:5050/rules", {
@@ -156,15 +159,53 @@ function App() {
     }
   };
 
+  const analysisRuleConflicts = (rules) => {
+    if (rules.length == 0) {
+      alert(
+        "Lütfen sql dosyasının yüklendiğinden ve ekranda verileri gördüğünüzden emin olduktan sonra tekrar deneyiniz!"
+      );
+    }
+
+    console.log("rule analizi başladı");
+
+    try {
+      //Analiz için 1 dk süre verildi
+      axios.post(
+        "http://localhost:5050/rules/rules-conflict-analysis",
+        {
+          rules: rules,
+        },
+        {
+          timeout: 60000,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (error) {
+      if (error.response) {
+        // Sunucu yanıt verdi ama hata koduyla
+        console.error("---- Sunucu hatası:", error.response.data);
+      } else if (error.request) {
+        // İstek yapıldı ama yanıt alınamadı
+        console.error("---- Yanıt alınamadı:", error.request);
+      } else {
+        // Başka bir hata
+        console.error("---- İstek yapılamadı:", error.message);
+      }
+    }
+  };
+
   return (
     <>
       <div>
         {/* <Navbar /> */}
-        <h5 className="text-2xl font-bold mb-4">
-          Firewall Rule Conflict Analysis
-        </h5>
+        <h5 className="text-2xl font-bold ">Firewall Rule Conflict Analysis</h5>
         <div className="mr-0 pr-0 text-end">
-          <AnalizButton></AnalizButton>
+          <AnalizButton
+            rules={rules}
+            sendRules={analysisRuleConflicts}
+          ></AnalizButton>
         </div>
         {/* 
             ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
@@ -195,10 +236,17 @@ function App() {
           deleteItem={handleDelete}
         ></RuleEditModal> */}
 
-        <DatabaseUpload></DatabaseUpload>
-        {/* <div className="table-view">
-          <CustomTable onEditClick={handleEditBtnClick} rules={rules} />
-        </div> */}
+        <DatabaseUpload
+          setHeaders={setHeaders}
+          setRules={setRules}
+        ></DatabaseUpload>
+        <div className="table-view">
+          <CustomTable
+            onEditClick={handleEditBtnClick}
+            headers={headers}
+            rules={rules}
+          />
+        </div>
       </div>
     </>
   );

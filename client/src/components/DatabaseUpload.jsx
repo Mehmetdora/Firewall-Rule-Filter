@@ -2,12 +2,11 @@ import { useState } from "react";
 import apiClient from "../api/api";
 import axios from "axios";
 
-export default function DatabaseUpload() {
+export default function DatabaseUpload({ setRules, setHeaders }) {
   // Kullanıcı bir database dosyası (.sql) yüklemesi için kullanılacak komponent
 
   const [file, setFile] = useState();
   const [message, setMessage] = useState("");
-  const [rules, setRules] = useState();
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -21,7 +20,7 @@ export default function DatabaseUpload() {
 
   const handleUpload = async () => {
     if (!file) {
-      alert("Önce bir .sql dosyası seçin.");
+      alert("Öncesinde bir .sql dosyası seçin.");
       return;
     }
 
@@ -39,7 +38,14 @@ export default function DatabaseUpload() {
       const response = await axios.post(
         "http://localhost:5050/rules/upload-sql-file",
         formData,
+
         {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+
           timeout: 900000, // 15 dakika
 
           onUploadProgress: (progressEvent) => {
@@ -74,6 +80,7 @@ export default function DatabaseUpload() {
 
       setMessage(response.data.message);
       setRules(response.data.rules);
+      setHeaders(response.data.headers);
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla

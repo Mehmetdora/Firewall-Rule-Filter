@@ -1,14 +1,17 @@
 import Joi from "joi";
 import pool from "../DB/db.js";
 import path from "path";
-import fs from "fs";
 import { exec } from "child_process";
-import { Pool } from "pg";
+import {
+  analysisRuleConflicts,
+  deleteSQLFile,
+} from "../services/conflictAnalyser.js";
 
 import dotenv from "dotenv";
 dotenv.config();
 
 const rules = []; // veritabanından alınan rule listesi
+let sqlFileFullPath = "";
 
 export async function getRules(req, res) {
   // rules verilerini db den al
@@ -153,45 +156,321 @@ export function deleteRule(req, res) {
   return res.status(200).json({ message: "Rule deleted successfully" });
 }
 
-/* async function runSqlFile(filePath) {
-  return new Promise((resolve, reject) => {
-    exec(
-      `PGPASSWORD=${process.env.DB_PASSWORD} psql -h ${process.env.DB_HOST} -U ${process.env.DB_USER} -d ${process.env.DB_NAME} -f ${filePath}`,
-      (error, stdout, stderr) => {
-        console.log("exec callback tetiklendi");
-        if (error) {
-          console.error("psql error:", error);
-          return res.status(500).json({ error: error.message });
+// EXEC VE SPAWN FONKSİYONLARI
+/* 
+
+exec ile nodejs içinde terminal üzerinde çalıştırmak istediğimiz ama nodejs ile bu işlemleri
+otomatik hale getimek istediğimiz tüm işlemleri yapabiliz. 
+
+ilk aldığı parametre terminalde çalıştırmak istediğimiz komuttur. command olarak fonksiyona verilir. 
+
+- exec asenkron bir fonksiyondur. Yani komutun sonucu hemen gelmez. Sonuç geldiğinde çalışması için bir callback function verilmelidir.
+
+sonrasında callback fonk yazılır exec(commands, (err,stdout,stderr) => { kodlar });
+burada err => komut başarısız olursa buradan hatalar alınır. 
+stdout => komutun doğru çalışması halinde alınacak olan sonuçlardır. 
+stderr => komutun çalıştırılması halinde komut tarafında alınacak olan hatalar buradan kontrol edilir. 
+
+
+
+projede kullanılacak olan command değeri => 'const command = `psql -U postgres -d veritabanim -c "SELECT * FROM tablo_adi"`;' şekilden olabilir. 
+
+Genel kullanım şekli;
+-------
+exec(command, (err, stdout, stderr) => {
+  if (err) {
+    console.error("Komut hatası:", err.message);
+    return;
+  }
+
+  if (stderr) {
+    console.error("stderr:", stderr);
+    return;
+  }
+
+  console.log("Tablodan gelen veriler:");
+  console.log(stdout);
+});
+------
+
+
+Bu konuda benzer şekilde çalışan 'spawn' paketi de vardır. Bu paket ile daha uzun süren işlemler yapılır ama exec ile daha basit işlemler yapılır. Spawn kullanırken callback fonk. ları bulunmaz , bu nedenle kontroller süreç boyunca yapılır. 
+
+
+Örnek spawn kullanımı;
+
+------
+const child = spawn('psql', ['-U', 'postgres', '-d', 'veritabanim', '-c', 'SELECT * FROM tablo_adi']);
+
+child.stdout.on('data', (data) => {
+  console.log(`stdout: ${data}`);
+});
+
+child.stderr.on('data', (data) => {
+  console.error(`stderr: ${data}`);
+});
+
+child.on('close', (code) => {
+  console.log(`Process kapandı. Çıkış kodu: ${code}`);
+});
+------
+
+
+
+*/
+
+export function uploadSqlFile(req, res) {
+  if (!req.file) {
+    console.log("====> Dosya Controller a Gelmedi");
+    return res.status(400).json({ message: "Dosya yüklenmedi." });
+  }
+
+  console.log("===> Gelen Dosya: ", req.file);
+  const filePath = req.file.path;
+  const ext = path.extname(req.file.originalname).toLowerCase();
+  console.log("===> ext: ", ext);
+  const fullPath = path.resolve(filePath);
+  sqlFileFullPath = fullPath;
+  console.log("===> FILE FULL PATH: ", fullPath);
+
+  /* 
+    -U : kullanıcı adı , veritabanının
+    -d : bağlanılacak veritabanı 
+    -c : çalıştırılacak komut
+    */
+  const command =
+    'psql -U postgres -d postgres -c "SELECT * FROM \\"public\\".\\"tb_guvenlikKurallari\\""';
+
+  exec(command, (err, stdout, stderr) => {
+    if (err) {
+      console.error("===> Komut hatası:", err.message);
+      return;
+    }
+
+    if (stderr) {
+      console.error("===> stderr:", stderr);
+      return;
+    }
+
+    // Çıktıyı satırlara ayır
+    const lines = stdout.split("\n").filter((line) => line.trim() !== "");
+
+    if (lines.length < 2) {
+      console.log("No data found");
+      return;
+    }
+
+    // Sütun isimlerini al (ilk satır)
+    const headers = lines[0].split("|").map((h) => h.trim());
+
+    // Veri satırlarını işle, ilk satır tablo başlıkları, 2. satır boş ifadeler,3 den başla
+    // son satır boş ifadeler içeriyor , alma
+    let i = 2;
+    const result = [];
+    for (i; i < lines.length - 1; i++) {
+      const values = lines[i].split("|").map((v) => v.trim());
+      const row = {};
+
+      for (let j = 0; j < headers.length; j++) {
+        if (j >= values.length) {
+          row[headers[j]] = null;
+          continue;
         }
-        console.log("psql stdout:", stdout);
-        console.log("psql stderr:", stderr);
-        res.json({ message: "SQL dosyası başarıyla çalıştırıldı" });
+
+        let value = values[j];
+
+        // Boş değerleri null yap
+        if (value === "") {
+          value = null;
+        }
+        // JSON formatındaki string'leri parse et
+        else if (value.startsWith("{") || value.startsWith("[")) {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // JSON parse edilemezse olduğu gibi bırak
+          }
+        }
+        // 't' ve 'f' değerlerini boolean'a çevir
+        else if (value === "t") {
+          value = true;
+        } else if (value === "f") {
+          value = false;
+        }
+
+        row[headers[j]] = value;
+      }
+
+      result.push(row);
+    }
+
+    //console.log(result);
+
+    return res.status(200).json({
+      message: "Dosya yüklendi ,dosya içindeki kayıtlar alındı.",
+      rules: result,
+      headers: headers,
+    });
+  });
+}
+
+export function ekOzellikliUploadSqlFile(req, res) {
+  if (!req.file) {
+    console.log("====> Dosya Controller'a Gelmedi");
+    return res.status(400).json({ message: "Dosya yüklenmedi." });
+  }
+
+  const filePath = req.file.path;
+  const ext = path.extname(req.file.originalname).toLowerCase();
+
+  if (ext !== ".sql") {
+    return res
+      .status(400)
+      .json({ message: "Yalnızca .sql uzantılı dosyalar destekleniyor." });
+  }
+
+  const fullPath = path.resolve(filePath);
+  const tempDbName = `temp_db_${Date.now()}`;
+  const tableName = "tb_guvenlikKurallari";
+
+  // 1. Geçici veritabanı oluştur
+  exec(`createdb -U postgres ${tempDbName}`, (err, stdout, stderr) => {
+    if (err) {
+      console.error("❌ [createdb] exec error:", err.message);
+    }
+    if (stderr) {
+      console.error("⚠️ [createdb] stderr:", stderr);
+    }
+    if (err || stderr) {
+      return res
+        .status(500)
+        .json({ message: "Geçici veritabanı oluşturulamadı." });
+    }
+
+    console.log("✅ Geçici veritabanı oluşturuldu:", tempDbName);
+
+    // 2. Dump dosyasını yükle
+    exec(
+      `psql -U postgres -d ${tempDbName} -f "${fullPath}"`,
+      (err, stdout, stderr) => {
+        if (err) {
+          console.error("❌ [psql -f] exec error:", err.message);
+        }
+        if (stderr) {
+          console.error("⚠️ [psql -f] stderr:", stderr);
+        }
+        if (err || stderr) {
+          // Temizleme
+          exec(`dropdb -U postgres ${tempDbName}`, () => {});
+          return res
+            .status(500)
+            .json({ message: "Dump dosyası geçici veritabanına yüklenemedi." });
+        }
+
+        console.log("✅ Dump dosyası başarıyla yüklendi.");
+
+        // 3. Tablo verilerini al
+        const query = `psql -U postgres -d ${tempDbName} -c "SELECT * FROM \\"public\\".\\"${tableName}\\""`;
+
+        exec(query, (err, stdout, stderr) => {
+          // Her durumda temizleme
+          exec(
+            `dropdb -U postgres ${tempDbName}`,
+            (dropErr, dropOut, dropStderr) => {
+              if (dropErr) {
+                console.error("❌ [dropdb] exec error:", dropErr.message);
+              }
+              if (dropStderr) {
+                console.error("⚠️ [dropdb] stderr:", dropStderr);
+              }
+              console.log("🧹 Geçici veritabanı silindi:", tempDbName);
+            }
+          );
+
+          if (err) {
+            console.error("❌ [SELECT] exec error:", err.message);
+          }
+          if (stderr) {
+            console.error("⚠️ [SELECT] stderr:", stderr);
+          }
+          if (err || stderr) {
+            return res
+              .status(500)
+              .json({ message: `Tablodan veri okunamadı: ${tableName}` });
+          }
+
+          const lines = stdout.split("\n").filter((line) => line.trim() !== "");
+          if (lines.length < 2) {
+            return res.status(200).json({
+              message: "Tablo bulundu ancak kayıt yok.",
+              rules: [],
+              headers: [],
+            });
+          }
+
+          const headers = lines[0].split("|").map((h) => h.trim());
+          const result = [];
+
+          for (let i = 2; i < lines.length - 1; i++) {
+            const values = lines[i].split("|").map((v) => v.trim());
+            const row = {};
+
+            for (let j = 0; j < headers.length; j++) {
+              if (j >= values.length) {
+                row[headers[j]] = null;
+                continue;
+              }
+
+              let value = values[j];
+
+              if (value === "") {
+                value = null;
+              } else if (value === "t") {
+                value = true;
+              } else if (value === "f") {
+                value = false;
+              } else if (value.startsWith("{") || value.startsWith("[")) {
+                try {
+                  value = JSON.parse(value);
+                } catch (_) {}
+              }
+
+              row[headers[j]] = value;
+            }
+
+            result.push(row);
+          }
+
+          return res.status(200).json({
+            message: "Veriler başarıyla alındı.",
+            rules: result,
+            headers: headers,
+          });
+        });
       }
     );
   });
-} */
+}
 
-export async function uploadSqlFile(req, res) {
-  console.log("=== uploadSqlFile ÇALIŞTI ===", {
-    originalname: req.file?.originalname,
-    size: req.file?.size,
-  });
 
-  if (!req.file) {
-    console.log("[uploadSqlFile] Dosya bulunamadı!");
-    return res.status(400).json({ message: "Dosya yüklenemedi." });
-  }
+// ipv4 ve ipv6 ip'leri birbiri ile karşılaştırmak gerekir mi?
 
-  const filePath = req.file.path; // Eksik olan filePath tanımı
+//Analiz butonuna basılınca yapılacaklar
+export function analysisConflicts(req, res) {
+  console.log("Rule verileri geldi: ", req.body.rules);
+  analysisRuleConflicts(req.body.rules);
+  deleteSQLFile(sqlFileFullPath);
+}
 
-  try {
-    if (
-      req.file.originalname.includes("dump") ||
-      req.file.mimetype === "application/octet-stream"
-    ) {
-      // Binary dump dosyası için pg_restore
-      const pgRestorePath = "/opt/homebrew/opt/postgresql@15/bin/pg_restore";
-      const args = [
+/* router.post("/upload-sql-file", upload.single("sqlfile"), async (req, res) => {
+  // Komut seçimleri
+  const isDump = ext === ".dump";
+  const command = isDump
+    ? "/opt/homebrew/opt/postgresql@15/bin/pg_restore"
+    : "psql";
+
+  const args = isDump
+    ? [
         "-h",
         process.env.DB_HOST,
         "-U",
@@ -199,156 +478,70 @@ export async function uploadSqlFile(req, res) {
         "-d",
         process.env.DB_NAME,
         "-v",
+        "-f",
+        filePath,
+      ]
+    : [
+        "-h",
+        process.env.DB_HOST,
+        "-U",
+        process.env.DB_USER,
+        "-d",
+        process.env.DB_NAME,
+        "-f",
         filePath,
       ];
 
-      const child = spawn(pgRestorePath, args, {
-        env: {
-          ...process.env,
-          PGPASSWORD: process.env.DB_PASSWORD || "",
-        },
-        maxBuffer: 1024 * 1024 * 50, // 50MB
-      });
+  const env = {
+    ...process.env,
+    PGPASSWORD: process.env.DB_PASSWORD || "",
+  };
 
-      let stdout = "";
-      let stderr = "";
+  try {
+    console.log("COMMANND ====", command, args);
+    const child = exec(command, args, { env });
 
-      child.stdout.on("data", (data) => {
-        stdout += data.toString();
-      });
+    const abc = exec (command, (out, err) => {
+      if (err)
 
-      child.stderr.on("data", (data) => {
-        stderr += data.toString();
-      });
+      out
+    })
 
-      const exitCode = await new Promise((resolve) => {
-        child.on("close", resolve);
-      });
+    let stdout = "";
+    let stderr = "";
 
-      console.log("[uploadSqlFile] pg_restore çıktı kodu:", exitCode);
-
-      try {
-        fs.unlinkSync(filePath);
-        console.log("[uploadSqlFile] Geçici dosya silindi");
-      } catch (unlinkErr) {
-        console.error("[uploadSqlFile] Dosya silinemedi:", unlinkErr);
-      }
-
-      if (exitCode !== 0) {
-        console.error("[uploadSqlFile] pg_restore başarısız:", stderr);
-        return res.status(500).json({
-          error: "pg_restore işlemi başarısız",
-          details: stderr,
-        });
-      }
-    } else {
-      // Normal SQL dosyası için psql veya doğrudan işleme
-      const sqlContent = fs.readFileSync(filePath, "utf8");
-      const pool = new Pool({
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        port: parseInt(process.env.DB_PORT) || 5432,
-        database: process.env.DB_NAME,
-      });
-
-      await pool.query(sqlContent);
-      fs.unlinkSync(filePath);
-    }
-
-    // Her iki durumda da verileri çek
-    const pool = new Pool({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      port: parseInt(process.env.DB_PORT) || 5432,
-      database: process.env.DB_NAME,
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
     });
 
-    const result = await pool.query(
-      'SELECT * FROM "public"."tb_guvenlikKurallari" LIMIT 10'
-    );
-    await pool.end();
-
-    res.json({
-      message: "SQL dosyası başarıyla çalıştırıldı ve veriler alındı.",
-      rules: result.rows,
-      rowCount: result.rows.length,
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
     });
-  } catch (error) {
-    console.error("[uploadSqlFile] Genel hata:", error);
-    try {
+    console.log("chil.d", stderr, stdout);
+    child.on("close", (code) => {
+      // Dosyayı sil
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-    } catch (unlinkErr) {
-      console.error("[uploadSqlFile] Dosya silinemedi:", unlinkErr);
-    }
 
-    res.status(500).json({
-      error: "İşlem sırasında hata oluştu",
-      details: error.message,
-    });
-  }
-}
-
-/*
- */
-
-/* export async function uploadSqlFile(req, res) {
-  if (!req.file) {
-    return res.status(400).json({ message: "Dosya yüklenemedi." });
-  }
-
-  const filePath = path.join("uploads", req.file.filename);
-
-  // Dosya içeriğini okuma (opsiyonel: direkt çalıştırma, kaydetme vs. için)
-  const content = fs.readFileSync(filePath, "utf8");
-
-  // Bu şekilde yeni  bir pool objesi oluşturulmalı
-  const customPool = new Pool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT),
-    database: process.env.DB_NAME,
-  });
-
-  try {
-    const output = await runSqlFile(filePath);
-    console.log("SQL dosyası çalıştırıldı:", output);
-
-    const result = await customPool.query(
-      'SELECT * FROM "public"."tb_guvenlikKurallari"'
-    );
-    res.json({
-      message: "Dosya yüklendi ve tablolar oluşturuldu",
-      rules: result.rows,
+      if (code === 0) {
+        return res.json({
+          message: "SQL dosyası başarıyla çalıştırıldı.",
+          output: stdout,
+        });
+      } else {
+        return res.status(500).json({
+          error: "Veritabanı komutu hatası",
+          details: stderr,
+        });
+      }
     });
   } catch (error) {
-    console.error("Hata:", error);
-    res.status(500).json({ error: error.toString() });
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    return res
+      .status(500)
+      .json({ error: "İşlenemedi", details: error.message });
   }
-
-  /* try {
-    
-
-    // SQL dosyasındaki tüm komutları çalıştır
-    console.log("Çalıştırılacak SQL içeriği:", content);
-    await customPool.query(content);
-    console.log("SQL dosyası çalıştırıldı.");
-
-    // Artık tablo varsa veriyi alabilirsin
-    const result = await customPool.query(
-      'SELECT * FROM "public"."tb_guvenlikKurallari"'
-    );
-
-    res.json({
-      message: "SQL dosyası başarıyla çalıştırıldı",
-      rules: result.rows,
-    });
-  } catch (err) {
-    console.error("SQL dosyası çalıştırılırken hata oluştu:", err);
-    res.status(500).json({ error: "SQL dosyası çalıştırılamadı" });
-  } 
-} */
+}); */

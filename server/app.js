@@ -15,7 +15,7 @@ const app = express();
 
 // 1. CORS
 
-app.use((req, res, next) => {
+/* app.use((req, res, next) => {
   // upload url'inde ayarları değiştir
   if (req.url.includes("upload")) {
     // TCP optimizasyonları
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
     req.socket.setMaxListeners(0);
   }
   next();
-});
+}); */
 
 app.use(
   cors({
@@ -50,6 +50,6 @@ const server = app
     console.error("❌ Server start error:", err);
   });
 
-server.timeout = 900000;
+/* server.timeout = 900000;  // 15 dk
 server.keepAliveTimeout = 900000;
-server.headersTimeout = 900000;
+server.headersTimeout = 900000; */
