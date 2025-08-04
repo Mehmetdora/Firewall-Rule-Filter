@@ -1,3 +1,4 @@
+import { log } from "console";
 import fs from "fs";
 import CIDR from "ip-cidr";
 import ip6addr from "ip6addr";
@@ -22,6 +23,45 @@ SOR:
 
 */
 
+
+function getSubRules(){
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function analysisRuleConflicts(rules) {
   /* 
     rule conflict analizinde ilk rule diğer tüm rule lar ile, 2. rule birinci hariç
@@ -38,22 +78,31 @@ export function analysisRuleConflicts(rules) {
       const rule2 = rules[j];
 
       // her 2 farklı rule için analiz fonk çalıştır.
-      const rules_analysis = analysis2Rule(rule1, rule2);
+      const rules_analysis = analysis2Rule(rule1, i, rule2, j);
       analysises.push(rules_analysis);
     }
   }
 
+
+  console.log("==== Analiz Tamamlandı.");
   console.log("Toplam rule sayısı: ", rules.length);
   console.log(
     "Olması gereken analiz sayısı: ",
     (rules.length * (rules.length - 1)) / 2
   );
   console.log("Toplam analiz sayısı:", analysises.length);
+
+  return analysises;
 }
 
-function analysis2Rule(rule1, rule2) {
+// burada 2 rule analizi yapılır , birbirlerini % kaç ezdikleri bilgisini döner.
+function analysis2Rule(rule1, index1, rule2, index2) {
   console.log("==== Analiz Başlangıcı ---->");
   let conflictPertencagesList = [];
+
+  let totalOrtakIp = 0n;
+  let totalRule1Ip = 0n;
+  let totalRule2Ip = 0n;
 
   rule1.kaynakAdres.forEach((item1) => {
     rule2.kaynakAdres.forEach((item2) => {
@@ -65,7 +114,10 @@ function analysis2Rule(rule1, rule2) {
         console.log("1. Adres: ", item1FormattedIp);
         console.log("2. Adres: ", item2FormattedIp);
 
-        let conflictPertencage = null;
+        let conflictPertencageTotal = null;
+        let ortakIp = 0n;
+        let ipSayisiRule1 = 0n;
+        let ipSayisiRule2 = 0n;
 
         // özel durumlardaki ipAdress değerleri kontrolü
         try {
@@ -183,7 +235,12 @@ function analysis2Rule(rule1, rule2) {
                 Number((ortakIpSayisi * 10000000000n) / birlesimToplam) /
                 100000000;
             }
-            conflictPertencage = yuzde;
+
+            ortakIp = BigInt(ortakIpSayisi);
+            ipSayisiRule1 = BigInt(ipSayisi1);
+            ipSayisiRule2 = BigInt(ipSayisi2);
+
+            conflictPertencageTotal = yuzde;
           } else {
             // normal formatta gelen adreslerin kontrolü
             const isFirstSmaller = altKumeKontroluIpV4(
@@ -211,8 +268,12 @@ function analysis2Rule(rule1, rule2) {
             const toplamBirlesimIpSayisi =
               item1ToplamIpSayisi + item2ToplamIpSayisi - ortakIpSayisi;
 
-            conflictPertencage = (
-              (ortakIpSayisi / toplamBirlesimIpSayisi) *
+            ortakIp = BigInt(ortakIpSayisi);
+            ipSayisiRule1 = BigInt(item1ToplamIpSayisi);
+            ipSayisiRule2 = BigInt(item2ToplamIpSayisi);
+
+            conflictPertencageTotal = (
+              (Number(ortakIpSayisi) / Number(toplamBirlesimIpSayisi)) *
               100
             ).toFixed(10);
           }
@@ -220,22 +281,41 @@ function analysis2Rule(rule1, rule2) {
           console.log("====> Çakışma kontrolü sırasında hata: ", errIp);
         }
 
-        conflictPertencagesList.push(conflictPertencage);
+        totalOrtakIp += ortakIp;
+        totalRule1Ip += ipSayisiRule1;
+        totalRule2Ip += ipSayisiRule2;
+
+        conflictPertencagesList.push(conflictPertencageTotal);
       } /*  else {
         console.log("==== Kurallardan bir tanesinde ipAdresi bulunmuyor");
       } */
     });
   });
 
-  let totalVal = 0;
-  conflictPertencagesList.forEach((perctg) => {
-    totalVal += perctg;
-  });
-  const genelPertencage = (totalVal / conflictPertencagesList.length).toFixed(
-    6
-  );
+  let rule1EzilmeYuzdesi = 0;
+  let rule2EzilmeYuzdesi = 0;
+
+  if (totalOrtakIp > 0n) {
+    rule1EzilmeYuzdesi = Number((totalOrtakIp * 10000n) / totalRule1Ip) / 100;
+  }
+  if (totalOrtakIp > 0n) {
+    rule2EzilmeYuzdesi = Number((totalOrtakIp * 10000n) / totalRule2Ip) / 100;
+  }
+
+  let sonuc =
+    `====> ${index1}. sıradaki kuralın %${rule1EzilmeYuzdesi.toFixed(
+      3
+    )} kadarı, ` +
+    `${index2}. sıradaki kuralın %${rule2EzilmeYuzdesi.toFixed(
+      3
+    )} kadarını ezmektedir.`;
+
+  console.log(sonuc);
+
   console.log("==== Analiz Sonu ---->");
   console.log("\n\n");
+
+  return sonuc;
 }
 
 // 2 adres arasında hangisinin hangisinin alt kümesinde olduğu kontrolü

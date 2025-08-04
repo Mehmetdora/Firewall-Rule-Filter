@@ -74,13 +74,13 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
           },
         }
       );
+      console.log("Gelen veriler: ", response.data);
 
       const elapsed = (Date.now() - startTime) / 1000;
       console.log(`---- Upload tamamlandı: ${elapsed.toFixed(2)}s`);
 
       setMessage(response.data.message);
-      setRules(response.data.rules);
-      setHeaders(response.data.headers);
+      setRules(response.data.tb_guvenlikKurallari_data);
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla

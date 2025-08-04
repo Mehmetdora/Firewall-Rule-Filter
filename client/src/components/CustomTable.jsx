@@ -1,11 +1,19 @@
 import EditButton from "./EditButton";
 
-export default function CustomTable({ onEditClick, rules, headers }) {
+export default function CustomTable({ onEditClick, rules }) {
   const hasValue = (obj, key) => {
     return (
       obj?.hasOwnProperty(key) && obj[key] !== undefined && obj[key] !== null
     );
   };
+
+  if (rules.length == 0 || !rules) {
+    return (
+      <div>
+        <h3>Rule Verileri Gelmedi!!!!</h3>
+      </div>
+    );
+  }
 
   if (rules || rules.length != 0) {
     return (

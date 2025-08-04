@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import apiClient from "./api/api.js";
+import axios from "axios";
 
 import RuleEditModal from "./components/RuleEditModal.jsx";
 import CustomTable from "./components/CustomTable.jsx";
@@ -10,7 +11,7 @@ import RuleGroupModal from "./components/RuleGroupModal.jsx";
 import CreateRuleButton from "./components/CreateRuleButton.jsx";
 import RuleCreateModal from "./components/RuleCreateModal.jsx";
 import DatabaseUpload from "./components/DatabaseUpload.jsx";
-import axios from "axios";
+import AnalizSonucModal from "./components/AnalizSonucModal.jsx";
 
 function App() {
   const [ruleEditModalOpen, setRuleEditModalOpen] = useState(false);
@@ -21,6 +22,12 @@ function App() {
   const [rules, setRules] = useState([]);
   const [headers, setHeaders] = useState([]);
   // Rule kayıtlarını yüklenecek olan sql dosyası içerisindeki kayıtlardan al
+
+  // analiz için değerler
+  const [loading, setLoading] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [error, setError] = useState(null);
+  const [analysisModalClose, setAnalysisModalClose] = useState(false);
 
   const handleEditBtnClick = (item) => {
     setSelectedItem(item);
@@ -166,11 +173,14 @@ function App() {
       );
     }
 
-    console.log("rule analizi başladı");
+    console.log("====> Rule analizi başladı");
+    setLoading(true);
+    setError(null);
+    setResponse(null);
 
     try {
       //Analiz için 1 dk süre verildi
-      axios.post(
+      const response = axios.post(
         "http://localhost:5050/rules/rules-conflict-analysis",
         {
           rules: rules,
@@ -182,17 +192,23 @@ function App() {
           },
         }
       );
+      setAnalysis(response);
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla
         console.error("---- Sunucu hatası:", error.response.data);
+        setError("Sunucu hatası: ", error.response.data);
       } else if (error.request) {
         // İstek yapıldı ama yanıt alınamadı
         console.error("---- Yanıt alınamadı:", error.request);
+        setError("Yanıt anlınamadı: ", error.request);
       } else {
         // Başka bir hata
         console.error("---- İstek yapılamadı:", error.message);
+        setError("İstek yapılamadı: ", error.message);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -205,8 +221,15 @@ function App() {
           <AnalizButton
             rules={rules}
             sendRules={analysisRuleConflicts}
+            loading={loading}
           ></AnalizButton>
         </div>
+
+        <AnalizSonucModal
+          isOpen={!loading}
+          analysis={analysis}
+          onClose={setAnalysisModalClose}
+        ></AnalizSonucModal>
         {/* 
             ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
             SADECE ÇAKIŞMA ANALİZİ ÜZERİNDE DUR
@@ -243,7 +266,6 @@ function App() {
         <div className="table-view">
           <CustomTable
             onEditClick={handleEditBtnClick}
-            headers={headers}
             rules={rules}
           />
         </div>

@@ -1,11 +1,12 @@
 import Joi from "joi";
 import pool from "../DB/db.js";
 import path from "path";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import {
   analysisRuleConflicts,
   deleteSQLFile,
 } from "../services/conflictAnalyser.js";
+import tb_guvenlikKurallari from "../services/getDataFromDB.js";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -233,84 +234,20 @@ export function uploadSqlFile(req, res) {
   sqlFileFullPath = fullPath;
   console.log("===> FILE FULL PATH: ", fullPath);
 
-  /* 
-    -U : kullanıcı adı , veritabanının
-    -d : bağlanılacak veritabanı 
-    -c : çalıştırılacak komut
-    */
-  const command =
-    'psql -U postgres -d postgres -c "SELECT * FROM \\"public\\".\\"tb_guvenlikKurallari\\""';
+  // YÜKLENEN DOSYANIN ÇALIŞTIRILMASI
 
-  exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error("===> Komut hatası:", err.message);
-      return;
-    }
+  const fileType = getFileType(fullPath);
+  console.log("===> File Type: ", fileType);
 
-    if (stderr) {
-      console.error("===> stderr:", stderr);
-      return;
-    }
+  // Servis üzerinden kayıtları getir
+  const [message, tb_guvenlikKurallari_data] = tb_guvenlikKurallari(
+    fullPath,
+    fileType
+  );
 
-    // Çıktıyı satırlara ayır
-    const lines = stdout.split("\n").filter((line) => line.trim() !== "");
-
-    if (lines.length < 2) {
-      console.log("No data found");
-      return;
-    }
-
-    // Sütun isimlerini al (ilk satır)
-    const headers = lines[0].split("|").map((h) => h.trim());
-
-    // Veri satırlarını işle, ilk satır tablo başlıkları, 2. satır boş ifadeler,3 den başla
-    // son satır boş ifadeler içeriyor , alma
-    let i = 2;
-    const result = [];
-    for (i; i < lines.length - 1; i++) {
-      const values = lines[i].split("|").map((v) => v.trim());
-      const row = {};
-
-      for (let j = 0; j < headers.length; j++) {
-        if (j >= values.length) {
-          row[headers[j]] = null;
-          continue;
-        }
-
-        let value = values[j];
-
-        // Boş değerleri null yap
-        if (value === "") {
-          value = null;
-        }
-        // JSON formatındaki string'leri parse et
-        else if (value.startsWith("{") || value.startsWith("[")) {
-          try {
-            value = JSON.parse(value);
-          } catch (e) {
-            // JSON parse edilemezse olduğu gibi bırak
-          }
-        }
-        // 't' ve 'f' değerlerini boolean'a çevir
-        else if (value === "t") {
-          value = true;
-        } else if (value === "f") {
-          value = false;
-        }
-
-        row[headers[j]] = value;
-      }
-
-      result.push(row);
-    }
-
-    //console.log(result);
-
-    return res.status(200).json({
-      message: "Dosya yüklendi ,dosya içindeki kayıtlar alındı.",
-      rules: result,
-      headers: headers,
-    });
+  return res.status(200).json({
+    message: message,
+    tb_guvenlikKurallari_data: tb_guvenlikKurallari_data,
   });
 }
 
@@ -452,12 +389,11 @@ export function ekOzellikliUploadSqlFile(req, res) {
   });
 }
 
-
 // ipv4 ve ipv6 ip'leri birbiri ile karşılaştırmak gerekir mi?
 
 //Analiz butonuna basılınca yapılacaklar
 export function analysisConflicts(req, res) {
-  console.log("Rule verileri geldi: ", req.body.rules);
+  console.log("==== Rule verileri geldi, analize başlandı ");
   analysisRuleConflicts(req.body.rules);
   deleteSQLFile(sqlFileFullPath);
 }
@@ -545,3 +481,15 @@ export function analysisConflicts(req, res) {
       .json({ error: "İşlenemedi", details: error.message });
   }
 }); */
+
+function getFileType(filePath) {
+  try {
+    const output = execSync(`file "${filePath}"`).toString();
+    if (output.includes("PostgreSQL custom database dump")) {
+      return "custom";
+    }
+    return "plain";
+  } catch (e) {
+    return "unknown";
+  }
+}
