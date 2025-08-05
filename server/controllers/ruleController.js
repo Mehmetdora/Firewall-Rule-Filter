@@ -6,7 +6,14 @@ import {
   analysisRuleConflicts,
   deleteSQLFile,
 } from "../services/conflictAnalyser.js";
-import tb_guvenlikKurallari from "../services/getDataFromDB.js";
+import get_tb_guvenlikKurallari, {
+  get_tb_guvenlikKurallari_gruplari,
+  get_tb_protokoller,
+  get_tb_servisTanimlari,
+  get_tb_servisTanimlari_uyeler,
+  createFullRule,
+  get_tb_servis_atama,
+} from "../services/getDataFromDB.js";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -30,7 +37,6 @@ export async function getRules(req, res) {
     res.status(500).json({ error: "Sunucu hatası" });
   }
 }
-
 export function createdRule(req, res) {
   // validation işlemleri
 
@@ -90,7 +96,6 @@ export function createdRule(req, res) {
 
   return res.status(200).json({ message: "Kural başarıyla eklendi." });
 }
-
 export function editedRule(req, res) {
   const schema = Joi.object({
     id: Joi.number().required(),
@@ -142,7 +147,6 @@ export function editedRule(req, res) {
 
   return res.status(200).json({ message: "Kural başarıyla düzenlendi." });
 }
-
 export function deleteRule(req, res) {
   console.log("Delete request body:", req.body);
 
@@ -220,182 +224,80 @@ child.on('close', (code) => {
 
 */
 
-export function uploadSqlFile(req, res) {
+export async function uploadSqlFile(req, res) {
   if (!req.file) {
     console.log("====> Dosya Controller a Gelmedi");
     return res.status(400).json({ message: "Dosya yüklenmedi." });
   }
 
-  console.log("===> Gelen Dosya: ", req.file);
-  const filePath = req.file.path;
-  const ext = path.extname(req.file.originalname).toLowerCase();
-  console.log("===> ext: ", ext);
-  const fullPath = path.resolve(filePath);
-  sqlFileFullPath = fullPath;
-  console.log("===> FILE FULL PATH: ", fullPath);
+  try {
+    console.log("===> Gelen Dosya: ", req.file);
+    const filePath = req.file.path;
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    console.log("===> ext: ", ext);
+    const fullPath = path.resolve(filePath);
+    sqlFileFullPath = fullPath;
+    console.log("===> FILE FULL PATH: ", fullPath);
 
-  // YÜKLENEN DOSYANIN ÇALIŞTIRILMASI
+    // YÜKLENEN DOSYANIN ÇALIŞTIRILMASI
 
-  const fileType = getFileType(fullPath);
-  console.log("===> File Type: ", fileType);
+    const fileType = getFileType(fullPath);
+    console.log("===> File Type: ", fileType);
 
-  // Servis üzerinden kayıtları getir
-  const [message, tb_guvenlikKurallari_data] = tb_guvenlikKurallari(
-    fullPath,
-    fileType
-  );
-
-  return res.status(200).json({
-    message: message,
-    tb_guvenlikKurallari_data: tb_guvenlikKurallari_data,
-  });
-}
-
-export function ekOzellikliUploadSqlFile(req, res) {
-  if (!req.file) {
-    console.log("====> Dosya Controller'a Gelmedi");
-    return res.status(400).json({ message: "Dosya yüklenmedi." });
-  }
-
-  const filePath = req.file.path;
-  const ext = path.extname(req.file.originalname).toLowerCase();
-
-  if (ext !== ".sql") {
-    return res
-      .status(400)
-      .json({ message: "Yalnızca .sql uzantılı dosyalar destekleniyor." });
-  }
-
-  const fullPath = path.resolve(filePath);
-  const tempDbName = `temp_db_${Date.now()}`;
-  const tableName = "tb_guvenlikKurallari";
-
-  // 1. Geçici veritabanı oluştur
-  exec(`createdb -U postgres ${tempDbName}`, (err, stdout, stderr) => {
-    if (err) {
-      console.error("❌ [createdb] exec error:", err.message);
-    }
-    if (stderr) {
-      console.error("⚠️ [createdb] stderr:", stderr);
-    }
-    if (err || stderr) {
-      return res
-        .status(500)
-        .json({ message: "Geçici veritabanı oluşturulamadı." });
-    }
-
-    console.log("✅ Geçici veritabanı oluşturuldu:", tempDbName);
-
-    // 2. Dump dosyasını yükle
-    exec(
-      `psql -U postgres -d ${tempDbName} -f "${fullPath}"`,
-      (err, stdout, stderr) => {
-        if (err) {
-          console.error("❌ [psql -f] exec error:", err.message);
-        }
-        if (stderr) {
-          console.error("⚠️ [psql -f] stderr:", stderr);
-        }
-        if (err || stderr) {
-          // Temizleme
-          exec(`dropdb -U postgres ${tempDbName}`, () => {});
-          return res
-            .status(500)
-            .json({ message: "Dump dosyası geçici veritabanına yüklenemedi." });
-        }
-
-        console.log("✅ Dump dosyası başarıyla yüklendi.");
-
-        // 3. Tablo verilerini al
-        const query = `psql -U postgres -d ${tempDbName} -c "SELECT * FROM \\"public\\".\\"${tableName}\\""`;
-
-        exec(query, (err, stdout, stderr) => {
-          // Her durumda temizleme
-          exec(
-            `dropdb -U postgres ${tempDbName}`,
-            (dropErr, dropOut, dropStderr) => {
-              if (dropErr) {
-                console.error("❌ [dropdb] exec error:", dropErr.message);
-              }
-              if (dropStderr) {
-                console.error("⚠️ [dropdb] stderr:", dropStderr);
-              }
-              console.log("🧹 Geçici veritabanı silindi:", tempDbName);
-            }
-          );
-
-          if (err) {
-            console.error("❌ [SELECT] exec error:", err.message);
-          }
-          if (stderr) {
-            console.error("⚠️ [SELECT] stderr:", stderr);
-          }
-          if (err || stderr) {
-            return res
-              .status(500)
-              .json({ message: `Tablodan veri okunamadı: ${tableName}` });
-          }
-
-          const lines = stdout.split("\n").filter((line) => line.trim() !== "");
-          if (lines.length < 2) {
-            return res.status(200).json({
-              message: "Tablo bulundu ancak kayıt yok.",
-              rules: [],
-              headers: [],
-            });
-          }
-
-          const headers = lines[0].split("|").map((h) => h.trim());
-          const result = [];
-
-          for (let i = 2; i < lines.length - 1; i++) {
-            const values = lines[i].split("|").map((v) => v.trim());
-            const row = {};
-
-            for (let j = 0; j < headers.length; j++) {
-              if (j >= values.length) {
-                row[headers[j]] = null;
-                continue;
-              }
-
-              let value = values[j];
-
-              if (value === "") {
-                value = null;
-              } else if (value === "t") {
-                value = true;
-              } else if (value === "f") {
-                value = false;
-              } else if (value.startsWith("{") || value.startsWith("[")) {
-                try {
-                  value = JSON.parse(value);
-                } catch (_) {}
-              }
-
-              row[headers[j]] = value;
-            }
-
-            result.push(row);
-          }
-
-          return res.status(200).json({
-            message: "Veriler başarıyla alındı.",
-            rules: result,
-            headers: headers,
-          });
-        });
-      }
+    // Servis üzerinden DB kayıtlarını getir
+    const tb_servisTanimlari_data = await get_tb_servisTanimlari(
+      fullPath,
+      fileType
     );
-  });
+    const tb_guvenlikKurallari_data = await get_tb_guvenlikKurallari(
+      fullPath,
+      fileType
+    );
+    const tb_protokoller_data = await get_tb_protokoller(fullPath, fileType);
+    const tb_guvenlikKurallari_gruplari_data =
+      await get_tb_guvenlikKurallari_gruplari(fullPath, fileType);
+    const tb_servisTanimlari_uyeler_data = await get_tb_servisTanimlari_uyeler(
+      fullPath,
+      fileType
+    );
+
+    const tb_servis_atama_data = await get_tb_servis_atama(fullPath, fileType);
+
+    // Gelen veriler üzerinden tüm bilgileri tek objede birleştirilmiş kayıt oluşturma
+    createFullRule(rules, tb_servisTanimlari_uyeler_data, tb_protokoller_data,tb_servis_atama_data);
+
+    return res.status(200).json({
+      message: "Kayıtlar başarıyla alındı.",
+      tb_guvenlikKurallari_data: tb_guvenlikKurallari_data,
+      tb_servisTanimlari_data: tb_servisTanimlari_data,
+      tb_protokoller_data: tb_protokoller_data,
+      tb_servis_atama_data: tb_servis_atama_data,
+      tb_servisTanimlari_uyeler_data: tb_servisTanimlari_uyeler_data,
+      tb_guvenlikKurallari_gruplari_data: tb_guvenlikKurallari_gruplari_data,
+    });
+  } catch (err) {
+    console.error("Controller hatası:", err);
+    return res.status(500).json({ message: "Controller hatası: ", err });
+  }
 }
 
-// ipv4 ve ipv6 ip'leri birbiri ile karşılaştırmak gerekir mi?
+// ipv4 ve ipv6 ip'leri birbiri ile karşılaştırmak gerekir mi? - onlar ayrı , karşılaştırmaya gerek yok
 
 //Analiz butonuna basılınca yapılacaklar
 export function analysisConflicts(req, res) {
-  console.log("==== Rule verileri geldi, analize başlandı ");
-  analysisRuleConflicts(req.body.rules);
-  deleteSQLFile(sqlFileFullPath);
+  console.log(
+    "==== Rule verileri geldi, analize başlandı :",
+    req.body.rules[0]
+  );
+
+  try {
+    analysisRuleConflicts(req.body.rules);
+    deleteSQLFile(sqlFileFullPath);
+  } catch (err) {
+    console.log("Analiz sırasında hata: ", err);
+    deleteSQLFile(sqlFileFullPath);
+    return;
+  }
 }
 
 /* router.post("/upload-sql-file", upload.single("sqlfile"), async (req, res) => {

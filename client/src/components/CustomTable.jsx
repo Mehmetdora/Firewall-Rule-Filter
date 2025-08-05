@@ -9,8 +9,8 @@ export default function CustomTable({ onEditClick, rules }) {
 
   if (rules.length == 0 || !rules) {
     return (
-      <div>
-        <h3>Rule Verileri Gelmedi!!!!</h3>
+      <div className="mt-5 font-bold text-red-400">
+        <h3>Henüz veri bulunmuyor, lütfen gerekli sql dosyasını yükleyiniz!</h3>
       </div>
     );
   }

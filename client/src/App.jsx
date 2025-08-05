@@ -176,7 +176,7 @@ function App() {
     console.log("====> Rule analizi başladı");
     setLoading(true);
     setError(null);
-    setResponse(null);
+    setAnalysis(null);
 
     try {
       //Analiz için 1 dk süre verildi
@@ -264,10 +264,7 @@ function App() {
           setRules={setRules}
         ></DatabaseUpload>
         <div className="table-view">
-          <CustomTable
-            onEditClick={handleEditBtnClick}
-            rules={rules}
-          />
+          <CustomTable onEditClick={handleEditBtnClick} rules={rules} />
         </div>
       </div>
     </>

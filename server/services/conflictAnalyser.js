@@ -23,44 +23,20 @@ SOR:
 
 */
 
+function getSubRules(rule) {
+  console.log("Gelen rule: ", rule);
 
-function getSubRules(){
+
   
+  const kaynak_ips = getSubKaynakIps(rule.kaynakAdres);
+  const hedef_ips = getSubHedefIps(rule.hedefAdres);
+  //const kaynak_ports = getSubKaynakPorts();
+  //const hedef_ports = getSubHedefPorts();
+  //const protokols = getSubProtokols();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function getSubKaynakIps(kaynak_adresler) {}
+function getSubHedefIps(hedef_adresler) {}
 
 export function analysisRuleConflicts(rules) {
   /* 
@@ -68,6 +44,23 @@ export function analysisRuleConflicts(rules) {
     diğer tüm rule lar ile ... bu şekilde devam ederek hiçbir rule bir başka rule ile 2
     defa analiz edilmeden tüm rule lar analiz edilmesi gerekiyor. 
     */
+
+  /* 
+  YENİ CONFLICT ANALİZİ
+  
+  Analiz yapılırken yeni yöntemde gelen rule listesindeki tüm rule'lar birbirleri ile sadece 1 kez çakışma analizi yapılacak şekilde 
+  kontrol edilecekler , 2 rule arasında çakışma analizi yapılırken önce her rule'dan oluşturulabilecek max alt rule listeleri oluşturulacak
+  ve bu 2 rule'dan oluşan alt rule listeleri birbirleri ile karşılaştırılacak. İçlerinden aynı olanlar varsa bunlar çakışma anlamına gelecek,
+  sonrasında toplam çakışma olan alt rule sayısı ve analize giren 2 rule'dan oluşan alt rule sayıları kullanılarak 2 rule arasında % kaçlık
+  çakışma olduğu çıktısı alınacak.  
+  */
+
+  console.log("===> Analize başlandı...");
+
+  getSubRules(rules[0]);
+
+  return;
+
   let analysises = [];
 
   for (let i = 0; i < rules.length; i++) {
@@ -82,7 +75,6 @@ export function analysisRuleConflicts(rules) {
       analysises.push(rules_analysis);
     }
   }
-
 
   console.log("==== Analiz Tamamlandı.");
   console.log("Toplam rule sayısı: ", rules.length);

@@ -21,16 +21,18 @@ router.post("/edited", editedRule);
 router.post("/deleted", deleteRule);
 router.post("/created", createdRule);
 
-const upload = createMulterMiddlewareToSQLFile("uploads",".sql",100);
-router.post("/upload-sql-file",upload.single("sqlfile"),uploadSqlFile);
+const upload = createMulterMiddlewareToSQLFile("uploads", ".sql", 800);
+router.post("/upload-sql-file", upload.single("sqlfile"), uploadSqlFile);
 
-
-router.post("/rules-conflict-analysis",analysisConflicts);
-
+router.post("/rules-conflict-analysis", analysisConflicts);
 
 // Multer Oluşturma Fonk.
 // fileDestination: "/uploads" , fileExtention : ".sql", fileMaxSize:200 gibi
-function createMulterMiddlewareToSQLFile(fileDestination,fileExtention,fileMaxSize) {
+function createMulterMiddlewareToSQLFile(
+  fileDestination,
+  fileExtention,
+  fileMaxSize
+) {
   // uploads klasörü yoksa oluştur
   const uploadDir = fileDestination;
   if (!fs.existsSync(uploadDir)) {
