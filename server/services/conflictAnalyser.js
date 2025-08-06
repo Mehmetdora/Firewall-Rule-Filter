@@ -1,7 +1,8 @@
-import { log } from "console";
+import { error, log } from "console";
 import fs from "fs";
 import CIDR from "ip-cidr";
 import ip6addr from "ip6addr";
+import net from "net";
 
 /*  
 
@@ -24,19 +25,49 @@ SOR:
 */
 
 function getSubRules(rule) {
-  console.log("Gelen rule: ", rule);
-
-
-  
-  const kaynak_ips = getSubKaynakIps(rule.kaynakAdres);
-  const hedef_ips = getSubHedefIps(rule.hedefAdres);
-  //const kaynak_ports = getSubKaynakPorts();
-  //const hedef_ports = getSubHedefPorts();
-  //const protokols = getSubProtokols();
+  const kaynak_ips = getSubKaynakIps(rule.kaynakAdresler);
+  const hedef_ips = getSubHedefIps(rule.hedefAdresler);
+  const kaynak_ports = getSubKaynakPorts(rule.servisTanim_uyeleri);
+  const hedef_ports = getSubHedefPorts(rule.servisTanim_uyeleri);
+  const protokols = getSubProtokols(rule.servisler);
 }
 
-function getSubKaynakIps(kaynak_adresler) {}
+function getSubKaynakIps(kaynak_adresler) {
+  let tam_adresler_ipv4 = [];
+  let tam_adresler_ipv6 = [];
+  kaynak_adresler.forEach((adres) => {
+    const tam_adres = sonunaSubnetEkle(adres);
+    if(checkIPVersion(tam_adres) == "IPv4"){
+      tam_adresler_ipv4.push(tam_adres);
+    }else if(checkIPVersion(tam_adres) == "IPv6"){
+      tam_adresler_ipv6.push(tam_adres);
+    }else{
+      console.log("Geçersiz IP: ",adres);
+    }
+
+  });
+
+  //Oluşan adreslerin alt ip'lerinin sayısını çıkar
+  
+
+
+
+
+}
 function getSubHedefIps(hedef_adresler) {}
+function getSubKaynakPorts(servisTanim_uyeler) {}
+function getSubHedefPorts(servisTanim_uyeler) {}
+function getSubProtokols(servisler) {}
+
+function checkIPVersion(ip) {
+  if (net.isIPv4(ip)) {
+    return "IPv4";
+  } else if (net.isIPv6(ip)) {
+    return "IPv6";
+  } else {
+    return "Geçersiz IP";
+  }
+}
 
 export function analysisRuleConflicts(rules) {
   /* 
@@ -55,7 +86,7 @@ export function analysisRuleConflicts(rules) {
   çakışma olduğu çıktısı alınacak.  
   */
 
-  console.log("===> Analize başlandı...");
+  console.log("===> Analize başlandı... ");
 
   getSubRules(rules[0]);
 
@@ -86,6 +117,22 @@ export function analysisRuleConflicts(rules) {
 
   return analysises;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // burada 2 rule analizi yapılır , birbirlerini % kaç ezdikleri bilgisini döner.
 function analysis2Rule(rule1, index1, rule2, index2) {
@@ -372,21 +419,6 @@ function ipToLong(ip) {
 function ipv4IpSayisi(cidrStr) {
   const cidr = new CIDR(cidrStr);
   return Number(cidr.size);
-}
-
-// ipv4 olan bir adresi ipv6 tipine çevirme
-function ipv4CidrToMappedIPv6Cidr(ipv4Cidr) {
-  const [ip, cidrLen] = ipv4Cidr.trim().split("/");
-
-  const prefix = parseInt(cidrLen);
-  if (prefix < 0 || prefix > 32 || !ip) {
-    throw new Error("Geçersiz IPv4 CIDR");
-  }
-
-  const mappedIPv6Addr = ip6addr.parse(`::ffff:${ip}`); // 👈 sadece adres parse
-  const mappedCIDR = ip6addr.createCIDR(mappedIPv6Addr, 96 + prefix); // 👈 burada CIDR yarat
-
-  return mappedCIDR.toString(); // ip ve prefix döner
 }
 
 // IPv4 ortak IP sayısını hesapla

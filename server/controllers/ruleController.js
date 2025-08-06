@@ -8,11 +8,11 @@ import {
 } from "../services/conflictAnalyser.js";
 import get_tb_guvenlikKurallari, {
   get_tb_guvenlikKurallari_gruplari,
-  get_tb_protokoller,
   get_tb_servisTanimlari,
   get_tb_servisTanimlari_uyeler,
   createFullRule,
   get_tb_servis_atama,
+  runSqlFileOnce,
 } from "../services/getDataFromDB.js";
 
 import dotenv from "dotenv";
@@ -244,36 +244,30 @@ export async function uploadSqlFile(req, res) {
     const fileType = getFileType(fullPath);
     console.log("===> File Type: ", fileType);
 
-    // Servis üzerinden DB kayıtlarını getir
-    const tb_servisTanimlari_data = await get_tb_servisTanimlari(
-      fullPath,
-      fileType
-    );
-    const tb_guvenlikKurallari_data = await get_tb_guvenlikKurallari(
-      fullPath,
-      fileType
-    );
-    const tb_protokoller_data = await get_tb_protokoller(fullPath, fileType);
-    const tb_guvenlikKurallari_gruplari_data =
-      await get_tb_guvenlikKurallari_gruplari(fullPath, fileType);
-    const tb_servisTanimlari_uyeler_data = await get_tb_servisTanimlari_uyeler(
-      fullPath,
-      fileType
-    );
+    // SQL dosyasını bir kerelik çalıştır , içeri al
+    await runSqlFileOnce(fullPath, fileType);
 
-    const tb_servis_atama_data = await get_tb_servis_atama(fullPath, fileType);
+    // Servis üzerinden DB kayıtlarını getir
+    const tb_servisTanimlari_data = await get_tb_servisTanimlari();
+    const tb_guvenlikKurallari_data = await get_tb_guvenlikKurallari();
+    const tb_guvenlikKurallari_gruplari_data =
+      await get_tb_guvenlikKurallari_gruplari();
+    const tb_servisTanimlari_uyeler_data =
+      await get_tb_servisTanimlari_uyeler();
+    const tb_servis_atama_data = await get_tb_servis_atama();
 
     // Gelen veriler üzerinden tüm bilgileri tek objede birleştirilmiş kayıt oluşturma
-    createFullRule(rules, tb_servisTanimlari_uyeler_data, tb_protokoller_data,tb_servis_atama_data);
+    const ruleList = createFullRule(
+      tb_servisTanimlari_data,
+      tb_guvenlikKurallari_data,
+      tb_guvenlikKurallari_gruplari_data,
+      tb_servisTanimlari_uyeler_data,
+      tb_servis_atama_data
+    );
 
     return res.status(200).json({
       message: "Kayıtlar başarıyla alındı.",
-      tb_guvenlikKurallari_data: tb_guvenlikKurallari_data,
-      tb_servisTanimlari_data: tb_servisTanimlari_data,
-      tb_protokoller_data: tb_protokoller_data,
-      tb_servis_atama_data: tb_servis_atama_data,
-      tb_servisTanimlari_uyeler_data: tb_servisTanimlari_uyeler_data,
-      tb_guvenlikKurallari_gruplari_data: tb_guvenlikKurallari_gruplari_data,
+      rules: ruleList,
     });
   } catch (err) {
     console.error("Controller hatası:", err);

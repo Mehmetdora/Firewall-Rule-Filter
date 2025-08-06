@@ -23,7 +23,10 @@ export default function CustomTable({ onEditClick, rules }) {
             key={item.id}
             className="bg-gray-50 hover:bg-gray-100 border rounded-lg shadow-sm p-4 flex justify-between items-start"
           >
-            <div className="flex items-start w-full">
+            <div className="flex items-start mr-3">
+              <h2 className="text-md font-semibold text-gray-800 tracking-wide">
+                Açıklama:
+              </h2>
               <div className="ml-1 flex-1">
                 <h3 className="text-black text-left  p-0 text-md font-bold mt-1">
                   {item.aciklama}
@@ -33,20 +36,21 @@ export default function CustomTable({ onEditClick, rules }) {
 
             <div className="flex items-start mr-3">
               <h2 className="text-md font-semibold text-gray-800 tracking-wide">
-                Durum Id:
+                Sıra NO:
               </h2>
               <div className="ml-1 flex-1 p-0">
                 <p className="text-gray-600 p-0 ml-0 text-sm mt-1">
-                  {item.durum_id}
+                  {item.sira_no}
                 </p>
               </div>
             </div>
+
             <div className="flex items-start w-full">
               <h2 className="text-md ml-1 font-semibold text-gray-800 tracking-wide">
                 Kaynak Adresleri:
               </h2>
               <div className="ml-4 flex-1">
-                {item.kaynakAdres.map((val, key) => (
+                {item.kaynakAdresleri.map((val, key) => (
                   <p
                     key={key}
                     className="text-gray-600 bg-red-100 text-sm mt-1"
@@ -62,12 +66,27 @@ export default function CustomTable({ onEditClick, rules }) {
                 Hedef Adresi:
               </h2>
               <div className="ml-4 flex-1">
-                {item.hedefAdres.map((val, key) => (
+                {item.hedefAdresleri.map((val, key) => (
                   <p
                     key={key}
                     className="text-gray-600 bg-red-100 text-sm mt-1"
                   >
                     {val.ipAdresi}
+                  </p>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-start w-full">
+              <h2 className="text-md ml-1 font-semibold text-gray-800 tracking-wide">
+                Protokoller:
+              </h2>
+              <div className="ml-4 flex-1">
+                {item.servisler.map((val, key) => (
+                  <p
+                    key={key}
+                    className="text-gray-600 bg-red-100 text-sm mt-1"
+                  >
+                    {val.adi}
                   </p>
                 ))}
               </div>

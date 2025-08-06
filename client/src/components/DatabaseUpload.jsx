@@ -7,6 +7,7 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
 
   const [file, setFile] = useState();
   const [message, setMessage] = useState("");
+  const [buttonName, setButtonName] = useState("Yükle");
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -23,6 +24,7 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
       alert("Öncesinde bir .sql dosyası seçin.");
       return;
     }
+    setButtonName("Dosya Yükleniyor, Kayıtlar Toplanıyor...");
 
     console.log(
       "---- Upload başlıyor...",
@@ -74,13 +76,14 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
           },
         }
       );
-      console.log("Gelen veriler: ", response.data);
+      console.log("Gelen rule list: ", response.data.rules);
 
       const elapsed = (Date.now() - startTime) / 1000;
       console.log(`---- Upload tamamlandı: ${elapsed.toFixed(2)}s`);
 
       setMessage(response.data.message);
-      setRules(response.data.tb_guvenlikKurallari_data);
+      setRules(response.data.rules);
+      setButtonName("Yeni Dosya Yükle");
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla
@@ -114,7 +117,7 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
           onClick={handleUpload}
           className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
-          Yükle
+          {buttonName}
         </button>
         {message && <p className="mt-2 text-green-700">{message}</p>}
       </div>
