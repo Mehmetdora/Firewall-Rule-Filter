@@ -286,6 +286,7 @@ export function analysisConflicts(req, res) {
 
   try {
     analysisRuleConflicts(req.body.rules);
+    
     deleteSQLFile(sqlFileFullPath);
   } catch (err) {
     console.log("Analiz sırasında hata: ", err);
