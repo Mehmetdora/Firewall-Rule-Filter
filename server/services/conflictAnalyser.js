@@ -34,20 +34,187 @@ toplam çakışma yüzdesi hesaplanmış olacak.
 
 */
 
+export function analysisRuleConflicts(rules) {
+  /* 
+    rule conflict analizinde ilk rule diğer tüm rule lar ile, 2. rule birinci hariç
+    diğer tüm rule lar ile ... bu şekilde devam ederek hiçbir rule bir başka rule ile 2
+    defa analiz edilmeden tüm rule lar analiz edilmesi gerekiyor. 
+    */
+
+  /* 
+  YENİ CONFLICT ANALİZİ
+  
+  Analiz yapılırken yeni yöntemde gelen rule listesindeki tüm rule'lar birbirleri ile sadece 1 kez çakışma analizi yapılacak şekilde 
+  kontrol edilecekler , 2 rule arasında çakışma analizi yapılırken önce her rule'dan oluşturulabilecek max alt rule listeleri oluşturulacak
+  ve bu 2 rule'dan oluşan alt rule listeleri birbirleri ile karşılaştırılacak. İçlerinden aynı olanlar varsa bunlar çakışma anlamına gelecek,
+  sonrasında toplam çakışma olan alt rule sayısı ve analize giren 2 rule'dan oluşan alt rule sayıları kullanılarak 2 rule arasında % kaçlık
+  çakışma olduğu çıktısı alınacak.  
+  */
+
+  console.log("===> Analize başlandı... ");
+
+  // tüm kuralları birbirleri ile 2 kural sadece bir kere analiz edilecek şekilde analize sok
+
+  let analysises = [];
+
+  // döngü içindeki her rule analiz edilmeden önce alt verileri çıkarılacağı için tekrar tekrar aynı verileri çıkarmak yerine
+  // her çıkarıldığında bir listede tut, eğer bir kural tekrar istenirse alt verileri listeden al
+  let rule_subData = [];
+
+  for (let i = 0; i < rules.length; i++) {
+    const rule1 = rules[i];
+
+    getSubData(rule1);
+
+    const { conflict1, conflict2 } = calHedefAdresConflict(
+      rule1.kaynakAdresleri,
+      rule1.kaynakAdresleri
+    );
+    console.log(
+      "===> Rule1-Rule2 hedef adresleri çakışma yüzdeleri : ",
+      conflict1,
+      conflict2
+    );
+    console.log(
+      "===> Rule1-Rule2 hedef adresleri çakışma yüzdeleri : ",
+      calHedefAdresConflict(rule1.hedefAdresleri, rule1.hedefAdresleri)
+    );
+
+    // 2. rule seçilecek zaman her zaman birincidekinden sonraki rule lar arasından bir tanesi seçilecek
+    for (let j = i + 1; j < rules.length; j++) {
+      const rule2 = rules[j];
+
+      // Her 2 farklı kuralın analizini yap, sonucu analysis listesinde tut
+
+      // başlangıçta toplam çakıma 1 olsun , yeni bir çakışma hesaplanınca bu değer ile çarpılacak
+      // eğer yeni çakışma 0 çıkarsa hesaba katılmayacak
+      let first_rule_total_conflict = 1;
+      let second_rule_total_conflict = 1;
+
+      // eğer 2 kuraldan herhangi birinde kaynak adres yada hedef adres değeri yoksa çakışma olmayacak demektir
+      // eğer girilen adresler için hariç seçeneği true ise bulununa oranı tersine çevir
+      if (
+        rule1.kaynakAdresleri.length != 0 &&
+        rule2.kaynakAdresleri.length != 0
+      ) {
+        const { rule1_conflict, rule2_conflict } = calKaynakAdresConflict(
+          rule1.kaynakAdresleri,
+          rule2.kaynakAdresleri
+        );
+
+        // Eğer hariç tut seçeneği işaretlenmiş ise yüzdeleri tersine çevir
+
+        if (rule1.detaylar.kaynakAdresHaricTut == true) {
+          rule1_conflict = 100 - rule1_conflict;
+        }
+        if (rule2.detaylar.kaynakAdresHaricTut == true) {
+          rule2_conflict = 100 - rule2_conflict;
+        }
+
+        // Her yüzdeyi genel yüzdeye ekle
+        first_rule_total_conflict *= rule1_conflict;
+        second_rule_total_conflict *= rule2_conflict;
+      }
+
+      if (
+        rule1.hedefAdresleri.length != 0 &&
+        rule2.hedefAdresleri.length != 0
+      ) {
+        const { rule1_conflict, rule2_conflict } = calHedefAdresConflict(
+          rule1.hedefAdresleri,
+          rule2.hedefAdresleri
+        );
+
+        // Eğer hariç tut seçeneği işaretlenmiş ise yüzdeleri tersine çevir
+
+        if (rule1.detaylar.hedefAdresHaricTut == true) {
+          rule1_conflict = 100 - rule1_conflict;
+        }
+        if (rule2.detaylar.hedefAdresHaricTut == true) {
+          rule2_conflict = 100 - rule2_conflict;
+        }
+
+        first_rule_total_conflict *= rule1_conflict;
+        second_rule_total_conflict *= rule2_conflict;
+      }
+    }
+  }
+
+  console.log("==== Analiz Tamamlandı.");
+  console.log("Toplam rule sayısı: ", rules.length);
+  console.log(
+    "Olması gereken analiz sayısı: ",
+    (rules.length * (rules.length - 1)) / 2
+  );
+  console.log("Toplam analiz sayısı:", analysises.length);
+
+  return analysises;
+}
+
 // portlar ve protokoller için tüm alt değerleri alma
 function getSubData(rule) {
-  const kaynak_ports = getSubKaynakPorts(rule.servisTanim_uyeleri);
-  const hedef_ports = getSubHedefPorts(rule.servisTanim_uyeleri);
-  const protokols = getSubProtokols(rule.servisler);
+  const kaynak_ports_list = getSubKaynakPorts(rule.servisTanim_uyeleri);
+  const hedef_ports_list = getSubHedefPorts(rule.servisTanim_uyeleri);
+  const protokols_list = getSubProtokols(rule.servisler);
+}
+
+// servisTanim_uyeler tablosundaki her kayıttan port bilgilerini alır ve liste olarak tüm portları verir
+function getSubKaynakPorts(servisTanim_uyeler) {
+  let ports = new Set(); // sadece benzersiz olan portlar
+  servisTanim_uyeler.forEach((servisTanim) => {
+    const port_baslangic = servisTanim.kaynakPortBaslangic;
+    const port_bitis = servisTanim.kaynakPortBitis;
+
+    if (port_baslangic || port_bitis) {
+      for (let port = port_baslangic; port <= port_bitis; port++) {
+        ports.add(port);
+      }
+    }
+  });
+
+  ports = Array.from(ports);
+
+  console.log("===> Kaynak ports: ", ports);
+}
+function getSubHedefPorts(servisTanim_uyeler) {
+  let ports = new Set();
+  servisTanim_uyeler.forEach((servisTanim) => {
+    const port_baslangic = servisTanim.hedefPortBaslangic;
+    const port_bitis = servisTanim.hedefPortBitis;
+
+    if (port_baslangic || port_bitis) {
+      for (let port = port_baslangic; port <= port_bitis; port++) {
+        ports.add(port);
+      }
+    }
+  });
+
+  ports = Array.from(ports);
+
+  console.log("===> Hedef ports: ", ports);
+}
+function getSubProtokols(servisler) {
+  let protokoller = new Set();
+
+  servisler.forEach((protokol) => {
+    protokoller.add(protokol.adi);
+  });
+
+  protokoller = Array.from(protokoller);
+  console.log("Tüm protokollerr: ", protokoller);
+
+  return protokoller;
 }
 
 // 2 rule'daki kaynak adresleri alır ve bu adreslerin birbirleri ile % kaçlık çakışma olduğunu bulur
+// 2 kural için çakışma yüzdeleri çıktısını verir(kaynak adres)
 function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
+  // Sonuçların hepsi big int olsun ki büyük sayılarda hata çıkmasın
   let toplam_conflict_ip_count = BigInt(0);
   let rule1_toplam_kaynak_adres_count = BigInt(0);
   let rule2_toplam_kaynak_adres_count = BigInt(0);
 
-  // rule 1 adresleri
+  // rule 1 adreslerini grupla
   let rule1_tam_adresler_ipv4 = [];
   let rule1_tam_adresler_ipv6 = [];
   rule1_kaynak_adresler.forEach((adres) => {
@@ -61,7 +228,7 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
     }
   });
 
-  // rule 2 adresleri
+  // rule 2 adreslerini grupla
   let rule2_tam_adresler_ipv4 = [];
   let rule2_tam_adresler_ipv6 = [];
   rule2_kaynak_adresler.forEach((adres) => {
@@ -78,37 +245,37 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
   //Oluşan adreslerin alt ip'lerinin sayısını çıkar
 
   //bir kurala birden fazla adrs girilebilir , her kuraldaki adresler diğer kuraldaki her adres ile teker teker
-  // karşılaştırılır ve çakışan tüm ip sayıları toplanarak genel adres çakışma sayısı bulunur.
+  // karşılaştırılır ve çakışan tüm ip sayıları toplanarak toplam çakışan ip sayısı bulunur.
 
-  // 2 adres arasında karşılaştırma yapılırken eğer adreslerin türleri farklı ise çakışma 0 olarak kabul edilir
+  // 2 adres arasında karşılaştırma yapılırken eğer adreslerin türleri farklı ise çakışma 0 olarak kabul edilir,
+  // yani ipv4 kendi içlerinde , ipv6 kendi içlerinde analiz edilecek
 
   // Deneme Adresleri
+  // IPv4
   rule1_tam_adresler_ipv4 = [
-    "10.0.0.0/15", // 131,072 IP (10.0.0.0 - 10.1.255.255)
-    "192.168.0.0/22", // 1,024 IP (192.168.0.0 - 192.168.3.255)
-    "172.16.0.0/16", // 65,536 IP (172.16.0.0 - 172.16.255.255)
+    "10.0.0.0/15", // 131,072 IP
+    "192.168.0.0/22", // 1,024 IP
   ];
 
   rule2_tam_adresler_ipv4 = [
-    "10.0.128.0/17", // 32,768 IP (10.0.128.0 - 10.0.255.255) - rule1 içinde kısmi overlap
-    "192.168.2.0/24", // 256 IP (192.168.2.0 - 192.168.2.255) - rule1 içinde tam kapsama
-    "172.17.0.0/16", // 65,536 IP (172.17.0.0 - 172.17.255.255) - rule1 dışında, çakışmaz
-    "8.8.8.0/24", // 256 IP (farklı blok, çakışmaz)
+    "10.0.0.0/16", // 65,536 IP → rule1’in ilk bloğunun yarısı
+    "10.1.0.0/16", // 65,536 IP → rule1’in ilk bloğunun diğer yarısı
+    "192.168.0.0/23", // 512 IP → rule1’in ikinci bloğunun yarısı
   ];
 
-  /* rule1_tam_adresler_ipv6 = [
-    "2001:db8::/64", // 2^64 IP (65,536 IP)
-    "2001:db8:1::/64", // 2^64 IP (65,536 IP)
-    "2001:db8:2::/63", // 2^(128-63)=2^65 IP (131,072 IP)
+  // IPv6
+  rule1_tam_adresler_ipv6 = [
+    "2001:db8::/63", // 2^65 IP
+    "2001:db8:4::/64", // 2^64 IP
   ];
 
   rule2_tam_adresler_ipv6 = [
-    "2001:db8::1/128", // Tek IP (1 IP), rule1'in ilk bloğunda
-    "2001:db8:1::/64", // Tam çakışan blok (2^64 IP)
-    "2001:db8:2::/64", // rule1'in 2::/63 bloğunun yarısı (2^64 IP)
-  ]; */
+    "2001:db8::/64", // 2^64 IP → ilk bloğun yarısı
+    "2001:db8:1::/64", // 2^64 IP → ilk bloğun diğer yarısı
+    "2001:db8:4::/65", // 2^63 IP → ikinci bloğun yarısı
+  ];
 
-  // Adreslerden toplam ip sayılarını çıkarma(ipv4)
+  // Adreslerden toplam ip sayılarını çıkar(ipv4)
   rule1_tam_adresler_ipv4.forEach((item) => {
     const cidr = new CIDR(item);
     rule1_toplam_kaynak_adres_count += cidr.size;
@@ -119,8 +286,8 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
     rule2_toplam_kaynak_adres_count += cidr.size;
   });
 
-  // Adreslerden toplam ip sayılarını çıkarma(ipv6)
-  /* rule1_tam_adresler_ipv6.forEach((item) => {
+  // Adreslerden toplam ip sayılarını çıkar(ipv6)
+  rule1_tam_adresler_ipv6.forEach((item) => {
     const ip_count = getIpv6AddrIpCount(item);
     rule1_toplam_kaynak_adres_count += ip_count;
   });
@@ -128,21 +295,12 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
   rule2_tam_adresler_ipv6.forEach((item) => {
     const ip_count = getIpv6AddrIpCount(item);
     rule2_toplam_kaynak_adres_count += ip_count;
-  }); */
+  });
 
-  console.log(
-    "====> Toplam rule1 adres sayısı : ",
-    rule1_toplam_kaynak_adres_count
-  );
-  console.log(
-    "====> Toplam rule2 adres sayısı : ",
-    rule2_toplam_kaynak_adres_count
-  );
+  // İlk kuralın adreslerini 2. kuralın adresleri ile karşılaştır ve her karşılaştırmada çakışan ip sayısını al
 
   rule1_tam_adresler_ipv4.forEach((rule1_adres_v4) => {
     rule2_tam_adresler_ipv4.forEach((rule2_adres_v4) => {
-      // gelen her adres çifti için ikisinde de bulunan ortak ip sayılarını hesapla
-
       try {
         const conflictIpCount = calculateConflictIpCountV4(
           rule1_adres_v4,
@@ -160,7 +318,7 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
     });
   });
 
-  /* rule1_tam_adresler_ipv6.forEach((rule1_adres_v6) => {
+  rule1_tam_adresler_ipv6.forEach((rule1_adres_v6) => {
     rule2_tam_adresler_ipv6.forEach((rule2_adres_v6) => {
       try {
         const conflictIpCount = calculateConflictIpCountV6(
@@ -177,15 +335,15 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
         );
       }
     });
-  }); */
+  });
 
-  console.log("Toplam çakışan ip sayısı : ", toplam_conflict_ip_count);
+  console.log("Toplam çakışan ip sayısı : ", Number(toplam_conflict_ip_count));
   console.log(
-    "Toplam rule1 adres sayısı : ",
+    "Toplam rule1 alt ip sayısı : ",
     Number(rule1_toplam_kaynak_adres_count)
   );
   console.log(
-    "Toplam rule2 adres sayısı : ",
+    "Toplam rule2 alt ip sayısı : ",
     Number(rule2_toplam_kaynak_adres_count)
   );
 
@@ -201,17 +359,172 @@ function calKaynakAdresConflict(rule1_kaynak_adresler, rule2_kaynak_adresler) {
     `1 kuralın %${rule1_conflict} kadarı, 2. kuralın %${rule2_conflict} kadarını ezmektedir.`
   );
 
-  return toplam_conflict_ip_count;
+  return { rule1_conflict: rule1_conflict, rule2_conflict: rule2_conflict };
 }
-function calHedefAdresConflict(rule1_hedef_adresler, rule2_hedef_adresler) {}
+function calHedefAdresConflict(rule1_hedef_adresler, rule2_hedef_adresler) {
+  // Sonuçların hepsi big int olsun ki büyük sayılarda hata çıkmasın
+  let toplam_conflict_ip_count = BigInt(0);
+  let rule1_toplam_hedef_adres_count = BigInt(0);
+  let rule2_toplam_hedef_adres_count = BigInt(0);
 
-function getSubKaynakPorts(servisTanim_uyeler) {}
-function getSubHedefPorts(servisTanim_uyeler) {}
-function getSubProtokols(servisler) {}
+  // rule 1 adreslerini grupla
+  let rule1_tam_adresler_ipv4 = [];
+  let rule1_tam_adresler_ipv6 = [];
+  rule1_hedef_adresler.forEach((adres) => {
+    if (adres.ipAdresi) {
+      const tam_adres = sonunaSubnetEkle(adres.ipAdresi);
+      if (checkIPVersion(tam_adres) == "IPv4") {
+        rule1_tam_adresler_ipv4.push(tam_adres);
+      } else if (checkIPVersion(tam_adres) == "IPv6") {
+        rule1_tam_adresler_ipv6.push(tam_adres);
+      } else {
+        console.log("Geçersiz IP: ", adres);
+      }
+    } else {
+      console.log("Geçersiz Adres: ", adres);
+    }
+  });
+
+  // rule 2 adreslerini grupla
+  let rule2_tam_adresler_ipv4 = [];
+  let rule2_tam_adresler_ipv6 = [];
+  rule2_hedef_adresler.forEach((adres) => {
+    if (adres.ipAdresi) {
+      const tam_adres = sonunaSubnetEkle(adres.ipAdresi);
+      if (checkIPVersion(tam_adres) == "IPv4") {
+        rule2_tam_adresler_ipv4.push(tam_adres);
+      } else if (checkIPVersion(tam_adres) == "IPv6") {
+        rule2_tam_adresler_ipv6.push(tam_adres);
+      } else {
+        console.log("Geçersiz IP: ", adres);
+      }
+    } else {
+      console.log("Geçersiz Adres: ", adres);
+    }
+  });
+
+  //Oluşan adreslerin alt ip'lerinin sayısını çıkar
+
+  //bir kurala birden fazla adrs girilebilir , her kuraldaki adresler diğer kuraldaki her adres ile teker teker
+  // karşılaştırılır ve çakışan tüm ip sayıları toplanarak toplam çakışan ip sayısı bulunur.
+
+  // 2 adres arasında karşılaştırma yapılırken eğer adreslerin türleri farklı ise çakışma 0 olarak kabul edilir,
+  // yani ipv4 kendi içlerinde , ipv6 kendi içlerinde analiz edilecek
+
+  // Deneme Adresleri
+  rule1_tam_adresler_ipv4 = [
+    "10.0.0.0/16", // 65,536 IP
+    "172.16.0.0/16", // 65,536 IP
+  ]; // rule1_ipv4_total = 131,072
+
+  rule2_tam_adresler_ipv4 = [
+    "10.0.0.0/17", // 32,768 IP  (rule1'in ilk /16'sının yarısı) -> overlap
+    "172.16.0.0/18", // 16,384 IP  (rule1'in ikinci /16'sının çeyreği) -> overlap
+    "8.8.8.0/18", // 16,384 IP  ( tamamen bağımsız, overlap yok )
+  ]; // rule2_ipv4_total = 65,536
+
+  // IPv6
+  rule1_tam_adresler_ipv6 = [
+    "2001:db8::/63", // 2^65  = 36,893,488,147,419,103,232
+    "2001:db8:2::/64", // 2^64  = 18,446,744,073,709,551,616
+  ]; // rule1_ipv6_total = 3 * 2^64
+
+  rule2_tam_adresler_ipv6 = [
+    "2001:db8::/64", // 2^64               -> overlap (ilk /63'ün yarısı)
+    "2001:db8:2::/65", // 2^63               -> overlap (ikinci bloğun yarısı)
+    "2001:db8:8::/64", // 2^64               -> ayrı (overlap yok)
+  ];
+
+  // Adreslerden toplam ip sayılarını çıkar(ipv4)
+  rule1_tam_adresler_ipv4.forEach((item) => {
+    const cidr = new CIDR(item);
+    rule1_toplam_hedef_adres_count += cidr.size;
+  });
+
+  rule2_tam_adresler_ipv4.forEach((item) => {
+    const cidr = new CIDR(item);
+    rule2_toplam_hedef_adres_count += cidr.size;
+  });
+
+  // Adreslerden toplam ip sayılarını çıkar(ipv6)
+  rule1_tam_adresler_ipv6.forEach((item) => {
+    const ip_count = getIpv6AddrIpCount(item);
+    rule1_toplam_hedef_adres_count += ip_count;
+  });
+
+  rule2_tam_adresler_ipv6.forEach((item) => {
+    const ip_count = getIpv6AddrIpCount(item);
+    rule2_toplam_hedef_adres_count += ip_count;
+  });
+
+  // İlk kuralın adreslerini 2. kuralın adresleri ile karşılaştır ve her karşılaştırmada çakışan ip sayısını al
+
+  rule1_tam_adresler_ipv4.forEach((rule1_adres_v4) => {
+    rule2_tam_adresler_ipv4.forEach((rule2_adres_v4) => {
+      try {
+        const conflictIpCount = calculateConflictIpCountV4(
+          rule1_adres_v4,
+          rule2_adres_v4
+        );
+        toplam_conflict_ip_count += conflictIpCount;
+      } catch (err) {
+        console.error(
+          "Karşılaştırma Sırasında Hata(IPV4):",
+          err,
+          rule1_adres_v4,
+          rule2_adres_v4
+        );
+      }
+    });
+  });
+
+  rule1_tam_adresler_ipv6.forEach((rule1_adres_v6) => {
+    rule2_tam_adresler_ipv6.forEach((rule2_adres_v6) => {
+      try {
+        const conflictIpCount = calculateConflictIpCountV6(
+          rule1_adres_v6,
+          rule2_adres_v6
+        );
+        toplam_conflict_ip_count += conflictIpCount;
+      } catch (err) {
+        console.error(
+          "Karşılaştırma Sırasında Hata(IPV6):",
+          err,
+          rule1_adres_v6,
+          rule2_adres_v6
+        );
+      }
+    });
+  });
+
+  console.log("Toplam çakışan ip sayısı : ", Number(toplam_conflict_ip_count));
+  console.log(
+    "Toplam rule1 alt ip sayısı : ",
+    Number(rule1_toplam_hedef_adres_count)
+  );
+  console.log(
+    "Toplam rule2 alt ip sayısı : ",
+    Number(rule2_toplam_hedef_adres_count)
+  );
+
+  // Yüzdelik hesaplama
+  const rule1_conflict =
+    Number(toplam_conflict_ip_count * BigInt(100)) /
+    Number(rule1_toplam_hedef_adres_count);
+  const rule2_conflict =
+    Number(toplam_conflict_ip_count * BigInt(100)) /
+    Number(rule2_toplam_hedef_adres_count);
+
+  console.log(
+    `1 kuralın %${rule1_conflict} kadarı, 2. kuralın %${rule2_conflict} kadarını ezmektedir.`
+  );
+
+  return { rule1_conflict: rule1_conflict, rule2_conflict: rule2_conflict };
+}
 
 function calculateConflictIpCountV4(adres1, adres2) {
   try {
-    console.log(`\nAnaliz: ${adres1} ↔ ${adres2}`);
+    console.log(`\nIPv4 Analizi: ${adres1} ↔ ${adres2}`);
 
     // Address4 constructor'ı sadece string alıyor
     if (!Address4.isValid(adres1) || !Address4.isValid(adres2)) {
@@ -222,22 +535,17 @@ function calculateConflictIpCountV4(adres1, adres2) {
     const addr1 = new Address4(adres1);
     const addr2 = new Address4(adres2);
 
-    // startAddress() ve endAddress() metodları Address4 nesnesi döndürür
+    // ilk ve son adres ip lerini al
     const start1Addr = addr1.startAddress();
     const end1Addr = addr1.endAddress();
     const start2Addr = addr2.startAddress();
     const end2Addr = addr2.endAddress();
 
-    // BigInteger değerlerini al
+    // bu değerleri sayısal olarak ifade et , karşılaştırma için
     const start1 = start1Addr.bigInt();
     const end1 = end1Addr.bigInt();
     const start2 = start2Addr.bigInt();
     const end2 = end2Addr.bigInt();
-
-    console.log(`Range1: ${start1Addr.address} - ${end1Addr.address}`);
-    console.log(`Range2: ${start2Addr.address} - ${end2Addr.address}`);
-    console.log(`Range1 BigInt: ${start1} - ${end1}`);
-    console.log(`Range2 BigInt: ${start2} - ${end2}`);
 
     // Kesişim kontrolü
     if (end1 < start2 || end2 < start1) {
@@ -245,21 +553,10 @@ function calculateConflictIpCountV4(adres1, adres2) {
       return BigInt(0);
     }
 
-    // Kesişim aralığını hesapla
+    // Kesişim ip sayını hesaplama
     const startOverlap = start1 > start2 ? start1 : start2;
     const endOverlap = end1 < end2 ? end1 : end2;
     const overlapCount = endOverlap - startOverlap + BigInt(1);
-
-    // Debug için kesişim adreslerini göster
-    try {
-      const startOverlapAddr = Address4.fromBigInt(startOverlap);
-      const endOverlapAddr = Address4.fromBigInt(endOverlap);
-      console.log(
-        `Kesişim: ${startOverlapAddr.address} - ${endOverlapAddr.address}`
-      );
-    } catch (e) {
-      console.log(`Kesişim BigInt aralığı: ${startOverlap} - ${endOverlap}`);
-    }
 
     console.log(`Çakışma → ${overlapCount} IP`);
     return overlapCount;
@@ -270,10 +567,9 @@ function calculateConflictIpCountV4(adres1, adres2) {
   }
 }
 
-// Düzeltilmiş IPv6 çakışma hesaplama fonksiyonu
 function calculateConflictIpCountV6(adres1, adres2) {
   try {
-    console.log(`\nAnaliz: ${adres1} ↔ ${adres2}`);
+    console.log(`\nIPv6 Analizi: ${adres1} ↔ ${adres2}`);
 
     // Address6 constructor'ı sadece string alıyor
     if (!Address6.isValid(adres1) || !Address6.isValid(adres2)) {
@@ -284,22 +580,15 @@ function calculateConflictIpCountV6(adres1, adres2) {
     const addr1 = new Address6(adres1);
     const addr2 = new Address6(adres2);
 
-    // startAddress() ve endAddress() metodları Address6 nesnesi döndürür
     const start1Addr = addr1.startAddress();
     const end1Addr = addr1.endAddress();
     const start2Addr = addr2.startAddress();
     const end2Addr = addr2.endAddress();
 
-    // BigInteger değerlerini al
     const start1 = start1Addr.bigInt();
     const end1 = end1Addr.bigInt();
     const start2 = start2Addr.bigInt();
     const end2 = end2Addr.bigInt();
-
-    console.log(`Range1: ${start1Addr.address} - ${end1Addr.address}`);
-    console.log(`Range2: ${start2Addr.address} - ${end2Addr.address}`);
-    console.log(`Range1 BigInt: ${start1} - ${end1}`);
-    console.log(`Range2 BigInt: ${start2} - ${end2}`);
 
     // Kesişim kontrolü
     if (end1 < start2 || end2 < start1) {
@@ -310,19 +599,7 @@ function calculateConflictIpCountV6(adres1, adres2) {
     // Kesişim aralığını hesapla
     const startOverlap = start1 > start2 ? start1 : start2;
     const endOverlap = end1 < end2 ? end1 : end2;
-
     const overlapCount = endOverlap - startOverlap + BigInt(1);
-
-    // Debug için kesişim adreslerini göster
-    try {
-      const startOverlapAddr = Address6.fromBigInt(startOverlap);
-      const endOverlapAddr = Address6.fromBigInt(endOverlap);
-      console.log(
-        `Kesişim: ${startOverlapAddr.address} - ${endOverlapAddr.address}`
-      );
-    } catch (e) {
-      console.log(`Kesişim BigInt aralığı: ${startOverlap} - ${endOverlap}`);
-    }
 
     console.log(`Çakışma → ${overlapCount} IP`);
     return overlapCount;
@@ -367,161 +644,34 @@ function getIpv6AddrIpCount(cidrStr) {
   }
 }
 
-// girilen ip6addr objesini bigInt a çevirir
-function ipv6ToBigInt(addr) {
-  try {
-    // IPv6 adresini tam format olarak al (sıfır padding ile)
-    const hex = addr
-      .toString({ format: "v6", zeroPad: true })
-      .replace(/:/g, "");
-    return BigInt("0x" + hex);
-  } catch (err) {
-    console.error("IPv6 BigInt dönüştürme hatası:", err);
-    return BigInt(0);
-  }
-}
-
-// ip'yi sayıya dönüştürme
-function ipToLong(ip) {
-  return ip.split(".").reduce((acc, octet) => (acc << 8) + parseInt(octet), 0);
-}
-
-function testIPv6Conflicts() {
-  console.log("=== IPv6 Çakışma Testi ===");
-
-  const testCases = [
-    {
-      addr1: "2001:db8:abcd::/122", // 64 IP (0-63)
-      addr2: "2001:db8:abcd::20/125", // 8 IP (32-39)
-      expected: 8, // Tam kesişim: ::20-::27 (8 IP)
-    },
-    {
-      addr1: "fd00:1234::/124", // 16 IP (0-15)
-      addr2: "fd00:1234::4/128", // 1 IP (4)
-      expected: 1, // Tam kesişim: ::4
-    },
-    {
-      addr1: "fd00:aaaa::/125", // 8 IP (0-7)
-      addr2: "fd00:aaaa::6/128", // 1 IP (6)
-      expected: 1, // Tam kesişim: ::6
-    },
-    {
-      addr1: "2001:db8:beef::/127", // 2 IP (0-1)
-      addr2: "2001:db8:beef::/126", // 4 IP (0-3)
-      expected: 2, // Tam kesişim: ::0-::1
-    },
-    {
-      addr1: "fe80::1:2/128", // 1 IP
-      addr2: "fe80::1:2/128", // 1 IP (aynı)
-      expected: 1, // Tam kesişim
-    },
-    {
-      addr1: "2001:db8:beef::/127", // Farklı ağ ailesi
-      addr2: "fd00:1234::4/128",
-      expected: 0, // Kesişim olmamalı
-    },
-  ];
-
-  testCases.forEach((test, index) => {
-    console.log(`\n--- Test ${index + 1} ---`);
-    console.log(`Adres 1: ${test.addr1}`);
-    console.log(`Adres 2: ${test.addr2}`);
-    console.log(`Beklenen: ${test.expected} IP`);
-
-    const result = calculateConflictIpCountV6(test.addr1, test.addr2);
-    const resultNum = Number(result);
-
-    console.log(`Hesaplanan: ${resultNum} IP`);
-    console.log(
-      `Sonuç: ${resultNum === test.expected ? "✅ DOĞRU" : "❌ HATALI"}`
-    );
-  });
-}
-
-function testProblematicCases() {
-  console.log("=== PROBLEMATİK DURUMLARIN TESTİ ===");
-
-  const tests = [
-    {
-      name: "Test 1: 2001:db8:abcd aralığı",
-      addr1: "2001:db8:abcd::/122",
-      addr2: "2001:db8:abcd::20/125",
-      expected: 8,
-    },
-    {
-      name: "Test 2: 2001:db8:beef aralığı",
-      addr1: "2001:db8:beef::/127",
-      addr2: "2001:db8:beef::/126",
-      expected: 2,
-    },
-  ];
-
-  tests.forEach((test) => {
-    console.log(`\n${test.name}`);
-    console.log(`Beklenen: ${test.expected} IP`);
-
-    const result = calculateConflictIpCountV6(test.addr1, test.addr2);
-    const resultNum = Number(result);
-
-    console.log(
-      `Sonuç: ${resultNum === test.expected ? "✅ DOĞRU" : "❌ HATALI"}`
-    );
-  });
-}
-
-export function analysisRuleConflicts(rules) {
-  /* 
-    rule conflict analizinde ilk rule diğer tüm rule lar ile, 2. rule birinci hariç
-    diğer tüm rule lar ile ... bu şekilde devam ederek hiçbir rule bir başka rule ile 2
-    defa analiz edilmeden tüm rule lar analiz edilmesi gerekiyor. 
-    */
-
-  /* 
-  YENİ CONFLICT ANALİZİ
-  
-  Analiz yapılırken yeni yöntemde gelen rule listesindeki tüm rule'lar birbirleri ile sadece 1 kez çakışma analizi yapılacak şekilde 
-  kontrol edilecekler , 2 rule arasında çakışma analizi yapılırken önce her rule'dan oluşturulabilecek max alt rule listeleri oluşturulacak
-  ve bu 2 rule'dan oluşan alt rule listeleri birbirleri ile karşılaştırılacak. İçlerinden aynı olanlar varsa bunlar çakışma anlamına gelecek,
-  sonrasında toplam çakışma olan alt rule sayısı ve analize giren 2 rule'dan oluşan alt rule sayıları kullanılarak 2 rule arasında % kaçlık
-  çakışma olduğu çıktısı alınacak.  
-  */
-
-  console.log("===> Analize başlandı... ");
-  testProblematicCases();
-
-  // tüm kuralları birbirleri ile 2 kural sadece bir kere analiz edilecek şekilde analize sok
-
-  let analysises = [];
-
-  // döngü içindeki her rule analiz edilmeden önce alt verileri çıkarılacağı için tekrar tekrar aynı verileri çıkarmak yerine
-  // her çıkarıldığında bir listede tut, eğer bir kural tekrar istenirse alt verileri listeden al
-  let rule_subData = [];
-
-  for (let i = 0; i < rules.length; i++) {
-    const rule1 = rules[i];
-
-    console.log(
-      "Toplam çakışan ip sayısı : ",
-      calKaynakAdresConflict(rule1.kaynakAdresleri, rule1.kaynakAdresleri)
-    );
-
-    // 2. rule seçilecek zaman her zaman birincidekinden sonraki rule lar arasından bir tanesi seçilecek
-    for (let j = i + 1; j < rules.length; j++) {
-      const rule2 = rules[j];
-
-      // Her 2 farklı kuralın analizini yap, sonucu analysis listesinde tut
+// işi biten sql dosyasının kaldırılması
+export function deleteSQLFile(filePath) {
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.warn("===> File does not exist:", filePath);
+      return;
     }
-  }
 
-  console.log("==== Analiz Tamamlandı.");
-  console.log("Toplam rule sayısı: ", rules.length);
-  console.log(
-    "Olması gereken analiz sayısı: ",
-    (rules.length * (rules.length - 1)) / 2
-  );
-  console.log("Toplam analiz sayısı:", analysises.length);
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("===> File delete error:", err);
+        return;
+      }
+      console.log("===> File deleted successfully");
+    });
+  });
+}
 
-  return analysises;
+// tekil ip adreslerini / içerecek şekilde formatla
+function sonunaSubnetEkle(ip) {
+  if (ip.includes("/")) return ip;
+  return `${ip}/32`;
+}
+
+// IPv4 toplam IP sayısını al
+function ipv4IpSayisi(cidrStr) {
+  const cidr = new CIDR(cidrStr);
+  return Number(cidr.size);
 }
 
 // burada 2 rule analizi yapılır , birbirlerini % kaç ezdikleri bilgisini döner.
@@ -745,87 +895,4 @@ function analysis2Rule(rule1, index1, rule2, index2) {
   console.log("\n\n");
 
   return sonuc;
-}
-
-// 2 adres arasında hangisinin hangisinin alt kümesinde olduğu kontrolü
-function altKumeKontroluIpV4(smallAdress, largeAdress) {
-  // ilk girilen ile 2. girilen adreslerden hangisinin hangisini kapsadığını bulur
-
-  const small = new CIDR(smallAdress);
-  const large = new CIDR(largeAdress);
-
-  // küçük CIDR'deki ilk IP adresi, büyük CIDR bloğuna ait mi?
-  const firstIp = small.start();
-  const lastIp = small.end();
-
-  return large.contains(firstIp) && large.contains(lastIp);
-}
-
-// işi biten sql dosyasının kaldırılması
-export function deleteSQLFile(filePath) {
-  fs.access(filePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      console.warn("===> File does not exist:", filePath);
-      return;
-    }
-
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error("===> File delete error:", err);
-        return;
-      }
-      console.log("===> File deleted successfully");
-    });
-  });
-}
-
-// tekil ip adreslerini / içerecek şekilde formatla
-function sonunaSubnetEkle(ip) {
-  if (ip.includes("/")) return ip;
-  return `${ip}/32`;
-}
-
-// IP string -> Long sayı dönüşümü
-// sadece normal adres dönüşümleri için kullan
-/* function ipToLong(ip) {
-  if (typeof ip !== "string") {
-    console.error("Geçersiz IP formatı, string bekleniyor:", ip);
-    return 0n;
-  }
-
-  const octets = ip.split(".");
-  if (octets.length !== 4) {
-    console.error("Geçersiz IPv4 adresi:", ip);
-    return 0n;
-  }
-
-  return octets.reduce(
-    (acc, octet) => (acc << 8n) + BigInt(parseInt(octet, 10)),
-    0n
-  );
-} */
-
-// IPv4 toplam IP sayısını al
-function ipv4IpSayisi(cidrStr) {
-  const cidr = new CIDR(cidrStr);
-  return Number(cidr.size);
-}
-
-// IPv4 ortak IP sayısını hesapla
-function ortakIpSayisiIPv4(ip1, ip2) {
-  const cidr1 = new CIDR(ip1);
-  const cidr2 = new CIDR(ip2);
-
-  const start1 = ipToLong(cidr1.start());
-  const end1 = ipToLong(cidr1.end());
-
-  const start2 = ipToLong(cidr2.start());
-  const end2 = ipToLong(cidr2.end());
-
-  const ortakStart = start1 > start2 ? start1 : start2;
-  const ortakEnd = end1 < end2 ? end1 : end2;
-
-  const ortakSayisi = ortakEnd >= ortakStart ? ortakEnd - ortakStart + 1n : 0n;
-
-  return Number(ortakSayisi);
 }

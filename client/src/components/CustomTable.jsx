@@ -1,19 +1,11 @@
 import EditButton from "./EditButton";
 
-export default function CustomTable({ onEditClick, rules }) {
+export default function CustomTable({ onEditClick, rules, isFileUploaded }) {
   const hasValue = (obj, key) => {
     return (
       obj?.hasOwnProperty(key) && obj[key] !== undefined && obj[key] !== null
     );
   };
-
-  if (rules.length == 0 || !rules) {
-    return (
-      <div className="mt-5 font-bold text-red-400">
-        <h3>Henüz veri bulunmuyor, lütfen gerekli sql dosyasını yükleyiniz!</h3>
-      </div>
-    );
-  }
 
   if (rules || rules.length != 0) {
     return (
@@ -55,7 +47,7 @@ export default function CustomTable({ onEditClick, rules }) {
                     key={key}
                     className="text-gray-600 bg-red-100 text-sm mt-1"
                   >
-                    {val.ipAdresi}
+                    {val.ipAdresi ? val.ipAdresi : val.arayuz_adi}
                   </p>
                 ))}
               </div>
@@ -71,7 +63,7 @@ export default function CustomTable({ onEditClick, rules }) {
                     key={key}
                     className="text-gray-600 bg-red-100 text-sm mt-1"
                   >
-                    {val.ipAdresi}
+                    {val.ipAdresi ? val.ipAdresi : val.arayuz_adi}
                   </p>
                 ))}
               </div>
@@ -98,7 +90,7 @@ export default function CustomTable({ onEditClick, rules }) {
               </h2>
               {hasValue(item, "detaylar") ? (
                 <div className="ml-4 flex-1">
-                  <p className="text-gray-600  text-sm mt-1">
+                  <div className="text-gray-600  text-sm mt-1">
                     {hasValue(item.detaylar, "hedefPortHaricTut") ? (
                       <p className="text-black mb-2 bg-red-100 font-bold">
                         <b>Hedef Port Hariç:</b>
@@ -139,7 +131,7 @@ export default function CustomTable({ onEditClick, rules }) {
                     ) : (
                       ""
                     )}
-                  </p>
+                  </div>
                 </div>
               ) : (
                 <p className="text-black ml-4 flex-1 mb-2 font-bold">---</p>

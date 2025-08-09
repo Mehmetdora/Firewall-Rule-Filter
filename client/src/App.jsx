@@ -18,6 +18,7 @@ function App() {
   const [ruleGroupEditModalOpen, setRuleGroupEditModalOpen] = useState(false);
   const [createRuleModalOpen, setCreateRuleModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
 
   const [rules, setRules] = useState([]);
   const [headers, setHeaders] = useState([]);
@@ -216,15 +217,29 @@ function App() {
     <>
       <div>
         {/* <Navbar /> */}
-        <h5 className="text-2xl font-bold ">Firewall Rule Conflict Analysis</h5>
-        <div className="mr-0 pr-0 text-end">
-          <AnalizButton
-            rules={rules}
-            sendRules={analysisRuleConflicts}
-            loading={loading}
-          ></AnalizButton>
-        </div>
+        <div className="flex items-center mb-20 ">
+          {/* Sol boşluk - flex sistemiyle daha iyi hizalanabilir */}
+          {isFileUploaded ? <div className="flex-1"></div> : ""}
+          {/* Orta başlık - artık tam genişlik gerekmiyor */}
+          <div className="flex-auto text-center">
+            <h5 className="text-3xl font-extrabold">
+              Firewall Rule Conflict Analysis
+            </h5>
+          </div>
+          {/* Sağ buton - artık margin/padding ile daha iyi kontrol */}
 
+          {isFileUploaded ? (
+            <div className="flex-1 flex justify-end pr-0">
+              <AnalizButton
+                rules={rules}
+                sendRules={analysisRuleConflicts}
+                loading={loading}
+              />
+            </div>
+          ) : (
+            ""
+          )}
+        </div>
         <AnalizSonucModal
           isOpen={!loading}
           analysis={analysis}
@@ -258,13 +273,13 @@ function App() {
           item={selectedItem}
           deleteItem={handleDelete}
         ></RuleEditModal> */}
-
         <DatabaseUpload
           setHeaders={setHeaders}
           setRules={setRules}
+          setIsFileUploaded={setIsFileUploaded}
         ></DatabaseUpload>
         <div className="table-view">
-          <CustomTable onEditClick={handleEditBtnClick} rules={rules} />
+          <CustomTable onEditClick={handleEditBtnClick} isFileUploaded={isFileUploaded} rules={rules} />
         </div>
       </div>
     </>

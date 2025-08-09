@@ -2,6 +2,9 @@ import Joi from "joi";
 import pool from "../DB/db.js";
 import path from "path";
 import { exec, execSync } from "child_process";
+import dotenv from "dotenv";
+dotenv.config();
+
 import {
   analysisRuleConflicts,
   deleteSQLFile,
@@ -14,9 +17,6 @@ import get_tb_guvenlikKurallari, {
   get_tb_servis_atama,
   runSqlFileOnce,
 } from "../services/getDataFromDB.js";
-
-import dotenv from "dotenv";
-dotenv.config();
 
 const rules = []; // veritabanından alınan rule listesi
 let sqlFileFullPath = "";
@@ -271,7 +271,9 @@ export async function uploadSqlFile(req, res) {
     });
   } catch (err) {
     console.error("Controller hatası:", err);
-    return res.status(500).json({ message: "Controller hatası: ", err });
+    return res.status(500).json({
+      err: err,
+    });
   }
 }
 
@@ -286,7 +288,7 @@ export function analysisConflicts(req, res) {
 
   try {
     analysisRuleConflicts(req.body.rules);
-    
+
     deleteSQLFile(sqlFileFullPath);
   } catch (err) {
     console.log("Analiz sırasında hata: ", err);

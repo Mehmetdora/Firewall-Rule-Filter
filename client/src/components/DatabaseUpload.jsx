@@ -1,13 +1,20 @@
 import { useState } from "react";
 import apiClient from "../api/api";
 import axios from "axios";
+import { useRef } from "react";
 
-export default function DatabaseUpload({ setRules, setHeaders }) {
+export default function DatabaseUpload({
+  setRules,
+  setHeaders,
+  setIsFileUploaded,
+}) {
   // Kullanıcı bir database dosyası (.sql) yüklemesi için kullanılacak komponent
 
   const [file, setFile] = useState();
   const [message, setMessage] = useState("");
-  const [buttonName, setButtonName] = useState("Yükle");
+  const [buttonName, setButtonName] = useState("Dosya Yükleyiniz");
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef(null);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -21,10 +28,12 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
 
   const handleUpload = async () => {
     if (!file) {
-      alert("Öncesinde bir .sql dosyası seçin.");
+      alert("Öncesinde bir SQL formatında dump dosyası seç.");
       return;
     }
     setButtonName("Dosya Yükleniyor, Kayıtlar Toplanıyor...");
+    setIsLoading(true);
+    setIsFileUploaded(false);
 
     console.log(
       "---- Upload başlıyor...",
@@ -69,9 +78,15 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
                   2
                 )}MB/s`
               );
-              setMessage(
-                `Yükleniyor: ${progress}% (${speedMBps.toFixed(2)}MB/s)`
-              );
+              if (progress == 100) {
+                setMessage(
+                  `Dosya yüklendi, kayıtlar sql dosyasından alınıyor...`
+                );
+              } else {
+                setMessage(
+                  `Yükleniyor: ${progress}% (${speedMBps.toFixed(2)}MB/s)`
+                );
+              }
             }
           },
         }
@@ -83,12 +98,11 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
 
       setMessage(response.data.message);
       setRules(response.data.rules);
-      setButtonName("Yeni Dosya Yükle");
+      setIsFileUploaded(true);
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla
-        console.error("---- Sunucu hatası:", error.response.data);
-        setMessage("Sunucu hatası: " + error.response.data.error);
+        setMessage(error.response.data.err.stderr);
       } else if (error.request) {
         // İstek yapıldı ama yanıt alınamadı
         console.error("---- Yanıt alınamadı:", error.request);
@@ -99,11 +113,18 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
         setMessage("İstek hatası: " + error.message);
       }
     }
+
+    setIsLoading(false);
+    setFile(null);
+    setButtonName("Yeni Dosyayı Yükle");
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   return (
     <>
-      <div className="p-4 border rounded-md shadow-md max-w-md mx-auto">
+      <div className="p-4 max-w-md mx-auto">
         <h4 className="text-m font-bold mb-4">
           Analiz Edilecek SQL Dosyasını Yükleyiniz
         </h4>
@@ -112,13 +133,20 @@ export default function DatabaseUpload({ setRules, setHeaders }) {
           type="file"
           accept=".sql"
           onChange={handleFileChange}
+          ref={inputRef}
         />
-        <button
-          onClick={handleUpload}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          {buttonName}
-        </button>
+        {isLoading ? (
+          ""
+        ) : (
+          <button
+            onClick={handleUpload}
+            className="mt-8 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            disabled={isLoading}
+          >
+            {buttonName}
+          </button>
+        )}
+
         {message && <p className="mt-2 text-green-700">{message}</p>}
       </div>
     </>
