@@ -1,9 +1,15 @@
-function AnalizButton({ sendRules, rules, loading }) {
+function AnalizButton({ sendRules, analysis, rules, loading }) {
+  let buttonName = "Çakışma Analizi Yap";
+
+  if (loading) {
+    buttonName = "Analiz Yapılıyor...";
+  } else if (analysis) {
+    buttonName = "Analiz Sonuçları";
+  }
+
   return (
     <button className="analiz-btn" onClick={() => sendRules(rules)}>
-      <span className="analiz-btn-text">
-        {loading ? "İşleniyor..." : "Çakışma Analizi Yap"}
-      </span>
+      <span className="analiz-btn-text">{buttonName}</span>
     </button>
   );
 }

@@ -28,7 +28,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
-  const [analysisModalClose, setAnalysisModalClose] = useState(false);
+  const [isAnalysisModalClose, setAnalysisModalClose] = useState(true);
 
   const handleEditBtnClick = (item) => {
     setSelectedItem(item);
@@ -167,7 +167,7 @@ function App() {
     }
   };
 
-  const analysisRuleConflicts = (rules) => {
+  const analysisRuleConflicts = async (rules) => {
     if (rules.length == 0) {
       alert(
         "Lütfen sql dosyasının yüklendiğinden ve ekranda verileri gördüğünüzden emin olduktan sonra tekrar deneyiniz!"
@@ -180,20 +180,20 @@ function App() {
     setAnalysis(null);
 
     try {
-      //Analiz için 1 dk süre verildi
-      const response = axios.post(
+      // axios ile gelen verilerden response.data ile erişmek için await kullanılmalı
+      const response = await axios.post(
         "http://localhost:5050/rules/rules-conflict-analysis",
         {
           rules: rules,
         },
         {
-          timeout: 60000,
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
-      setAnalysis(response);
+      setAnalysis(response.data.analysis);
+      setAnalysisModalClose(false);
     } catch (error) {
       if (error.response) {
         // Sunucu yanıt verdi ama hata koduyla
@@ -208,9 +208,8 @@ function App() {
         console.error("---- İstek yapılamadı:", error.message);
         setError("İstek yapılamadı: ", error.message);
       }
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (
@@ -231,7 +230,8 @@ function App() {
           {isFileUploaded ? (
             <div className="flex-1 flex justify-end pr-0">
               <AnalizButton
-                rules={rules}
+                analysis={analysis}
+                rules = {rules}
                 sendRules={analysisRuleConflicts}
                 loading={loading}
               />
@@ -241,14 +241,28 @@ function App() {
           )}
         </div>
         <AnalizSonucModal
-          isOpen={!loading}
+          isAnalysisModalClose={isAnalysisModalClose}
           analysis={analysis}
-          onClose={setAnalysisModalClose}
+          setModalClose={setAnalysisModalClose}
         ></AnalizSonucModal>
         {/* 
             ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
             SADECE ÇAKIŞMA ANALİZİ ÜZERİNDE DUR
         */}
+
+        <DatabaseUpload
+          setHeaders={setHeaders}
+          setRules={setRules}
+          setIsFileUploaded={setIsFileUploaded}
+        ></DatabaseUpload>
+        <div className="table-view">
+          <CustomTable
+            onEditClick={handleEditBtnClick}
+            isFileUploaded={isFileUploaded}
+            rules={rules}
+          />
+        </div>
+
         {/* <div className="flex justify-end mb-4">
           <GroupRulesButton onClick={() => setRuleGroupEditModalOpen(true)} />
         </div>
@@ -273,14 +287,6 @@ function App() {
           item={selectedItem}
           deleteItem={handleDelete}
         ></RuleEditModal> */}
-        <DatabaseUpload
-          setHeaders={setHeaders}
-          setRules={setRules}
-          setIsFileUploaded={setIsFileUploaded}
-        ></DatabaseUpload>
-        <div className="table-view">
-          <CustomTable onEditClick={handleEditBtnClick} isFileUploaded={isFileUploaded} rules={rules} />
-        </div>
       </div>
     </>
   );

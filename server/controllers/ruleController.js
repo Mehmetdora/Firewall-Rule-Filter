@@ -281,19 +281,18 @@ export async function uploadSqlFile(req, res) {
 
 //Analiz butonuna basılınca yapılacaklar
 export function analysisConflicts(req, res) {
-  console.log(
-    "==== Rule verileri geldi, analize başlandı :",
-    req.body.rules[0]
-  );
-
   try {
-    analysisRuleConflicts(req.body.rules);
-
+    const analysis = analysisRuleConflicts(req.body.rules);
     deleteSQLFile(sqlFileFullPath);
+    return res
+      .status(200)
+      .json({ message: "Analiz Tamamlandı!", analysis: analysis });
   } catch (err) {
     console.log("Analiz sırasında hata: ", err);
     deleteSQLFile(sqlFileFullPath);
-    return;
+    return res
+      .status(404)
+      .json({ message: "Analiz sırasında hata oluştu :", err });
   }
 }
 
