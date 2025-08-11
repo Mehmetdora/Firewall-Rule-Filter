@@ -7,15 +7,17 @@ export default function AnalizSonucModal({
 }) {
   // veriler varsa ve kapalı değilse analiz modal ını göster
 
-  console.log("Analizler:",analysis);
-  
   return (
     <>
       {analysis && isAnalysisModalClose == false ? (
         <div className="fixed flex items-center h-170 z-50">
           <div className="bg-white  shadow-lg rounded-2xl pt-2 pb-2 dark:bg-gray-700 w-300 relative">
             <div className="flex justify-end mb-2">
-              <div className="w-9/10 ml-3 text-start"><b>Toplam Analiz Sayısı: {analysis.length} <br/> </b></div>
+              <div className="w-9/10 ml-3 text-start">
+                <b>
+                  Toplam Analiz Sayısı: {analysis.length} <br />{" "}
+                </b>
+              </div>
               <div className="w-1/10 flex">
                 <button
                   className=" text-sm "

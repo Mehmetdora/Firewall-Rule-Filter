@@ -73,11 +73,13 @@ export function analysisRuleConflicts(rules) {
 
       // başlangıçta toplam çakıma 1 olsun , yeni bir çakışma hesaplanınca bu değer ile çarpılacak
       // eğer yeni çakışma 0 çıkarsa hesaba katılmayacak
-      let first_rule_total_conflict = 1.0;
-      let second_rule_total_conflict = 1.0;
+      let first_rule_total_conflict = 0.0;
+      let second_rule_total_conflict = 0.0;
 
       // eğer 2 kuraldan herhangi birinde kaynak adres yada hedef adres değeri yoksa çakışma olmayacak demektir
       // eğer girilen adresler için hariç seçeneği true ise bulununa oranı tersine çevir
+
+      // EĞER BULUNAN ÇAKIŞMA 0'DAN BÜYÜKSE GENEL ÇAKIŞMA İLE BİRLEŞTİR, YOKSA DOKUNMA
       if (
         rule1.kaynakAdresleri.length != 0 &&
         rule2.kaynakAdresleri.length != 0
@@ -87,30 +89,47 @@ export function analysisRuleConflicts(rules) {
           rule1.kaynakAdresleri,
           rule2.kaynakAdresleri
         );
-        console.log("Kaynak adres çakışmaları: ",rule1_conflict," - ",rule2_conflict);
+        console.log(
+          "#####--- Kaynak adres çakışmaları sonucu: ",
+          rule1_conflict,
+          " - ",
+          rule2_conflict
+        );
 
-        let rule1_conflict_value = rule1_conflict;
-        let rule2_conflict_value = rule2_conflict;
+        // Eğer çakışmalar 0'dan büyükse işleme sok
+        if (rule1_conflict > 0) {
+          let rule1_conflict_value = rule1_conflict;
+          let rule1_conflict_fraction = rule1_conflict_value / 100.0;
 
-        let rule1_conflict_fraction = rule1_conflict_value / 100.0;
-        let rule2_conflict_fraction = rule2_conflict_value / 100.0;
+          // Eğer hariç tut seçeneği işaretlenmiş ise yüzdeleri tersine çevir
+          if (rule1.detaylar.kaynakAdresHaricTut == true) {
+            rule1_conflict_fraction = (100.0 - rule1_conflict_value) / 100.0;
+          }
 
-        // Eğer hariç tut seçeneği işaretlenmiş ise yüzdeleri tersine çevir
-
-        if (rule1.detaylar.kaynakAdresHaricTut == true) {
-          rule1_conflict_fraction = (100.0 - rule1_conflict_value) / 100.0;
+          //  genel yüzdeye eşitle, başta genel çakışma yüzdesi 0 olduğu için
+          first_rule_total_conflict = rule1_conflict_fraction;
         }
-        if (rule2.detaylar.kaynakAdresHaricTut == true) {
-          rule2_conflict_fraction = (100.0 - rule2_conflict_value) / 100.0;
-        }
 
-        // Her yüzdeyi genel yüzdeye ekle
-        first_rule_total_conflict *= rule1_conflict_fraction;
-        second_rule_total_conflict *= rule2_conflict_fraction;
+        if (rule2_conflict > 0) {
+          let rule2_conflict_value = rule2_conflict;
+          let rule2_conflict_fraction = rule2_conflict_value / 100.0;
+
+          if (rule2.detaylar.kaynakAdresHaricTut == true) {
+            rule2_conflict_fraction = (100.0 - rule2_conflict_value) / 100.0;
+          }
+
+          // genel yüzdeye ekle, genel çakışma 0 ise eşitle
+          if (second_rule_total_conflict == 0) {
+            second_rule_total_conflict = rule2_conflict_fraction;
+          } else {
+            second_rule_total_conflict *= rule2_conflict_fraction;
+          }
+        }
 
         console.log(
-          "Çakışma yüzdeleri: ",
+          "#####--- Kaynak adres yüzdelerinin genel yüzdeler ile çarpılması sonucu: ",
           first_rule_total_conflict,
+          " - ",
           second_rule_total_conflict
         );
       }
@@ -124,29 +143,46 @@ export function analysisRuleConflicts(rules) {
           rule2.hedefAdresleri
         );
 
-        console.log("Hedef adres çakışmaları: ",rule1_conflict," - ",rule2_conflict);
-        
-
-        let rule1_conflict_value = rule1_conflict;
-        let rule2_conflict_value = rule2_conflict;
-
-        let rule1_conflict_fraction = rule1_conflict_value / 100.0;
-        let rule2_conflict_fraction = rule2_conflict_value / 100.0;
-
-        // Eğer hariç tut seçeneği işaretlenmiş ise yüzdeleri tersine çevir
-
-        if (rule1.detaylar.hedefAdresHaricTut == true) {
-          rule1_conflict_fraction = (100.0 - rule1_conflict_value) / 100.0;
-        }
-        if (rule2.detaylar.hedefAdresHaricTut == true) {
-          rule2_conflict_fraction = (100.0 - rule2_conflict_value) / 100.0;
-        }
-
-        first_rule_total_conflict *= rule1_conflict_fraction;
-        second_rule_total_conflict *= rule2_conflict_fraction;
         console.log(
-          "Çakışma yüzdeleri: ",
+          "#####--- Hedef adreslerinin çakışmaları: ",
+          rule1_conflict,
+          " - ",
+          rule2_conflict
+        );
+
+        // Eğer çakışmalar 0'dan büyükse işleme sok
+        if (rule1_conflict > 0) {
+          let rule1_conflict_value = rule1_conflict;
+          let rule1_conflict_fraction = rule1_conflict_value / 100.0;
+
+          // Eğer hariç tut seçeneği işaretlenmiş ise yüzdeleri tersine çevir
+          if (rule1.detaylar.hedefAdresHaricTut == true) {
+            rule1_conflict_fraction = (100.0 - rule1_conflict_value) / 100.0;
+          }
+
+          //  genel yüzdeye ekle
+          first_rule_total_conflict = rule1_conflict_fraction;
+        }
+
+        if (rule2_conflict > 0) {
+          let rule2_conflict_value = rule2_conflict;
+          let rule2_conflict_fraction = rule2_conflict_value / 100.0;
+
+          if (rule2.detaylar.kaynakAdresHaricTut == true) {
+            rule2_conflict_fraction = (100.0 - rule2_conflict_value) / 100.0;
+          }
+          // genel yüzdeye ekle, genel çakışma 0 ise eşitle
+          if (second_rule_total_conflict == 0) {
+            second_rule_total_conflict = rule2_conflict_fraction;
+          } else {
+            second_rule_total_conflict *= rule2_conflict_fraction;
+          }
+        }
+
+        console.log(
+          "#####--- Hedef adres yüzdelerinin genel yüzdeler ile çarpılması sonucu: ",
           first_rule_total_conflict,
+          " - ",
           second_rule_total_conflict
         );
       }
@@ -169,7 +205,6 @@ export function analysisRuleConflicts(rules) {
         ];
 
         if (rule1_sub_datas.length != 0 && rule2_sub_datas.length != 0) {
-
           const rule1_sub_data_list = createSubDataList(
             rule1_sub_data.kaynak_ports,
             rule1_sub_data.hedef_ports,
@@ -191,34 +226,48 @@ export function analysisRuleConflicts(rules) {
             rule2_sub_data_set_list.includes(item)
           );
 
-          console.log("====> Ortak Port-Protokol Sayısı: ", ortak_data);
+          console.log("====> Ortak portlar-protokoller: ", ortak_data);
           console.log(
-            "====> Rule1 Port-Protokol Sayısı: ",
+            "====> Rule1 Port-Protokolleri: ",
             rule1_sub_data_set_list
           );
           console.log(
-            "====> Rule2 Port-Protokol Sayısı: ",
+            "====> Rule2 Port-Protokoller: ",
             rule2_sub_data_set_list
           );
         }
       } catch (err) {
-        console.log("Sub data çakışması sırasında hata: ", err);
+        console.log(
+          "Port-protokollerinin çakışma hesabı sırasında hata: ",
+          err
+        );
       }
+
+      const first_conflict =
+        (first_rule_total_conflict * 100.0) % 1 === 0
+          ? (first_rule_total_conflict * 100.0).toString()
+          : (first_rule_total_conflict * 100.0).toFixed(8);
+
+      const second_conflict =
+        (second_rule_total_conflict * 100.0) % 1 === 0
+          ? (second_rule_total_conflict * 100.0).toString()
+          : (second_rule_total_conflict * 100.0).toFixed(8);
 
       const analiz = {
         rule1_sira_no: rule1.sira_no,
         rule2_sira_no: rule2.sira_no,
         rule1_aciklama: rule1.aciklama,
         rule2_aciklama: rule2.aciklama,
-        rule1_conflict: first_rule_total_conflict,
-        rule2_conflict: second_rule_total_conflict,
+        rule1_conflict: first_conflict,
+        rule2_conflict: second_conflict,
       };
 
       console.log(
-        "===> Analiz, kural-1 , kural-2: ",
-        first_rule_total_conflict,
+        "####---> En son genel çakışma yüzdeleri(port-protokoller eklenmeden): ",
+        first_rule_total_conflict * 100.0,
         " - ",
-        second_rule_total_conflict
+        second_rule_total_conflict * 100.0,
+        "\n\n"
       );
 
       analysises.push(analiz);
