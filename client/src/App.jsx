@@ -216,13 +216,13 @@ function App() {
     <>
       <div>
         {/* <Navbar /> */}
-        <div className="flex items-center mb-20 ">
+        <div className="flex items-center  ">
           {/* Sol boşluk - flex sistemiyle daha iyi hizalanabilir */}
           {isFileUploaded ? <div className="flex-1"></div> : ""}
           {/* Orta başlık - artık tam genişlik gerekmiyor */}
           <div className="flex-auto text-center">
             <h5 className="text-3xl font-extrabold">
-              Firewall Rule Conflict Analysis
+              Firewall Kural Çakışması Analizi
             </h5>
           </div>
           {/* Sağ buton - artık margin/padding ile daha iyi kontrol */}
@@ -234,6 +234,8 @@ function App() {
                 rules = {rules}
                 sendRules={analysisRuleConflicts}
                 loading={loading}
+                setAnalysisModalClose = {setAnalysisModalClose}
+
               />
             </div>
           ) : (

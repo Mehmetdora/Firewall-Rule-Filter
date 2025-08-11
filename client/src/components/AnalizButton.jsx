@@ -1,6 +1,19 @@
-function AnalizButton({ sendRules, analysis, rules, loading }) {
+function AnalizButton({
+  sendRules,
+  analysis,
+  rules,
+  loading,
+  setAnalysisModalClose,
+}) {
   let buttonName = "Çakışma Analizi Yap";
 
+  const ifAnalysis = () => {
+    if (!analysis || analysis.length == 0) {
+      sendRules(rules);
+    }else{
+      setAnalysisModalClose(false);
+    }
+  };
   if (loading) {
     buttonName = "Analiz Yapılıyor...";
   } else if (analysis) {
@@ -8,7 +21,7 @@ function AnalizButton({ sendRules, analysis, rules, loading }) {
   }
 
   return (
-    <button className="analiz-btn" onClick={() => sendRules(rules)}>
+    <button className="analiz-btn" onClick={() => ifAnalysis()}>
       <span className="analiz-btn-text">{buttonName}</span>
     </button>
   );

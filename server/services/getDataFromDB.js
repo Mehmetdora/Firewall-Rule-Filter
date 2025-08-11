@@ -1,5 +1,4 @@
 import { exec } from "child_process";
-import { log } from "console";
 import { promisify } from "util";
 
 // stdout/stderr buffer limitini 100 MB yapıldı , dosya büyük olduğu için
@@ -29,10 +28,9 @@ export async function runSqlFileOnce(fullPath, fileType) {
       WHERE datname = '${dbName}' AND pid <> pg_backend_pid();"
     `);
 
-    // Veritabanını sil
+    // eğer bu isimde veritabanı varsa  siliniyor ki sonrasında üzerinde yazılmasın 
     await execAsync(`psql -U postgres -c "DROP DATABASE IF EXISTS ${dbName};"`);
 
-    // Yeni veritabanını oluştur
     await execAsync(`psql -U postgres -c "CREATE DATABASE ${dbName};"`);
 
     console.log(`===> ${dbName} oluşturuldu, import işlemi başlıyor...`);
