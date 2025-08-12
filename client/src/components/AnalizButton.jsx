@@ -3,21 +3,22 @@ function AnalizButton({
   analysis,
   rules,
   loading,
-  setAnalysisModalClose,
 }) {
   let buttonName = "Çakışma Analizi Yap";
 
   const ifAnalysis = () => {
     if (!analysis || analysis.length == 0) {
       sendRules(rules);
-    }else{
-      setAnalysisModalClose(false);
     }
   };
   if (loading) {
     buttonName = "Analiz Yapılıyor...";
-  } else if (analysis) {
-    buttonName = "Analiz Sonuçları";
+  } else if (analysis && analysis.length != 0) {
+    buttonName = "Analiz Tamamlandı";
+  }
+
+  if(rules.length == 0){
+    buttonName = "Çakışma Analizi Yap";
   }
 
   return (

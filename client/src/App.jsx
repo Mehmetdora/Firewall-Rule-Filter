@@ -29,6 +29,10 @@ function App() {
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
   const [isAnalysisModalClose, setAnalysisModalClose] = useState(true);
+  const [analizedRule, setAnalizedRule] = useState();
+
+  // analiz modal değerleri
+  const [analysisModalData, setAnalysisModalData] = useState();
 
   const handleEditBtnClick = (item) => {
     setSelectedItem(item);
@@ -231,11 +235,9 @@ function App() {
             <div className="flex-1 flex justify-end pr-0">
               <AnalizButton
                 analysis={analysis}
-                rules = {rules}
+                rules={rules}
                 sendRules={analysisRuleConflicts}
                 loading={loading}
-                setAnalysisModalClose = {setAnalysisModalClose}
-
               />
             </div>
           ) : (
@@ -244,8 +246,9 @@ function App() {
         </div>
         <AnalizSonucModal
           isAnalysisModalClose={isAnalysisModalClose}
-          analysis={analysis}
+          analysis={analysisModalData}
           setModalClose={setAnalysisModalClose}
+          analizedRule = {analizedRule}
         ></AnalizSonucModal>
         {/* 
             ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
@@ -256,12 +259,17 @@ function App() {
           setHeaders={setHeaders}
           setRules={setRules}
           setIsFileUploaded={setIsFileUploaded}
+          setAnalysis={setAnalysis}
         ></DatabaseUpload>
         <div className="table-view">
           <CustomTable
+            analysis={analysis}
             onEditClick={handleEditBtnClick}
             isFileUploaded={isFileUploaded}
             rules={rules}
+            setAnalysisModalClose={setAnalysisModalClose}
+            setAnalysisModalData={setAnalysisModalData}
+            setAnalizedRule = {setAnalizedRule}
           />
         </div>
 

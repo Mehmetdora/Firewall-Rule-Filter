@@ -200,7 +200,7 @@ exec(command, (err, stdout, stderr) => {
 
 
 Bu konuda benzer şekilde çalışan 'spawn' paketi de vardır. Bu paket ile daha uzun süren işlemler yapılır ama exec ile daha basit işlemler yapılır. Spawn kullanırken callback fonk. ları bulunmaz , bu nedenle kontroller süreç boyunca yapılır. 
-
+Spawn ile sonucu anlık olarak dinleyerek sürecin % kaçının bitti hakkında bilgi alınabilir ama exec de sonuç en son belli olur.
 
 Örnek spawn kullanımı;
 

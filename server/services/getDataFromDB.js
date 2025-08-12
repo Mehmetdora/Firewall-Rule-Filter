@@ -28,7 +28,7 @@ export async function runSqlFileOnce(fullPath, fileType) {
       WHERE datname = '${dbName}' AND pid <> pg_backend_pid();"
     `);
 
-    // eğer bu isimde veritabanı varsa  siliniyor ki sonrasında üzerinde yazılmasın 
+    // eğer bu isimde veritabanı varsa  siliniyor ki sonrasında üzerinde yazılmasın
     await execAsync(`psql -U postgres -c "DROP DATABASE IF EXISTS ${dbName};"`);
 
     await execAsync(`psql -U postgres -c "CREATE DATABASE ${dbName};"`);
@@ -227,7 +227,7 @@ export async function get_tb_guvenlikKurallari_gruplari() {
       .map((line) => line.trim())
       .filter((line) => line.startsWith("{") && line.endsWith("}"));
 
-    const jsonRules = jsonObjects
+    const jsonGroups = jsonObjects
       .map((jsonStr) => {
         try {
           return JSON.parse(jsonStr);
@@ -238,9 +238,9 @@ export async function get_tb_guvenlikKurallari_gruplari() {
       })
       .filter((obj) => obj !== null);
 
-    console.log("Parsed tb_guvenlikKurallari_gruplari verisi:", jsonRules[0]);
+    console.log("Parsed tb_guvenlikKurallari_gruplari verisi:", jsonGroups[0]);
 
-    return jsonRules;
+    return jsonGroups;
   } catch (error) {
     console.error("getDataFromDB servis hatası:", error.message);
     throw error; // controller'daki try/catch'e gider
@@ -334,12 +334,16 @@ export function createFullRule(
       servisler.push(servis);
     });
 
+    const group_sira_no = guvenlikKurallari_gruplari.find(
+      (item) => item.id == guvenlikKurali.grup_id
+    );
+
     // Her güvenlikKurali'ndan kaynakAdres ve hedefAdres bilgisini topla
 
     fullRule = {
       id: guvenlikKurali.id,
       sira_no: guvenlikKurali.siraNo,
-      grup_no: guvenlikKurali.grup_id,
+      grup_sira_no: group_sira_no.siraNo,
       aciklama: guvenlikKurali.aciklama,
       kaynakAdresleri: guvenlikKurali.kaynakAdres,
       hedefAdresleri: guvenlikKurali.hedefAdres,

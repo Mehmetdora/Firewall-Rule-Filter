@@ -7,6 +7,7 @@ export default function DatabaseUpload({
   setRules,
   setHeaders,
   setIsFileUploaded,
+  setAnalysis
 }) {
   // Kullanıcı bir database dosyası (.sql) yüklemesi için kullanılacak komponent
 
@@ -34,6 +35,8 @@ export default function DatabaseUpload({
     setButtonName("Dosya Yükleniyor, Kayıtlar Toplanıyor...");
     setIsLoading(true);
     setIsFileUploaded(false);
+    setRules([]);
+    setAnalysis([]);
 
     console.log(
       "---- Upload başlıyor...",
