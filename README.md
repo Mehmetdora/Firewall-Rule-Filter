@@ -1,6 +1,6 @@
 # Firewall Rule Filter 🔍
 
-PostgreSQL’den alınmış bir **SQL dump** dosyasındaki güvenlik kuralı tablolarını okuyup **tekil "Rule" objeleri** haline getiren, kurallar arasındaki **çakışma/örtüşme** durumlarını (adres/protokol/port düzeyinde) analiz eden ve sonucu istemci tarafında görselleştiren bir uygulama.
+Bu proje PostgreSQL’den alınmış bir **SQL dump** dosyasındaki güvenlik kuralı tablolarını okuyup **tekil "Rule" objeleri** haline getiren, kurallar arasındaki **çakışma/örtüşme** durumlarını (adres/protokol/port düzeyinde) analiz eden ve sonucu istemci tarafında görselleştiren bir uygulamadır.
 
 > Sunucu için Node.js + Express, istemci için React kullanılmıştır. Dosya yükleme için Multer, SQL içeriğini geçici veritabanına aktarmak için PostgreSQL CLI (psql - pg\_restore) kullanıldı.
 
