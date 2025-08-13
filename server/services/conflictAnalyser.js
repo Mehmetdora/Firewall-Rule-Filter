@@ -58,8 +58,6 @@ export function analysisRuleConflicts(rules) {
 
   let analysises = [];
 
-  // döngü içindeki her rule analiz edilmeden önce alt verileri çıkarılacağı için tekrar tekrar aynı verileri çıkarmak yerine
-  // her çıkarıldığında bir listede tut, eğer bir kural tekrar istenirse alt verileri listeden al
   let rule_subData = [];
 
   for (let i = 0; i < rules.length; i++) {
@@ -95,8 +93,6 @@ export function analysisRuleConflicts(rules) {
           " - ",
           rule2_conflict
         );
-
-        // Eğer çakışmalar 0'dan büyükse işleme sok
 
         let rule1_conflict_value = rule1_conflict;
         let rule2_conflict_value = rule2_conflict;
@@ -183,7 +179,7 @@ export function analysisRuleConflicts(rules) {
         ];
 
         // eğer her 2 kuralda da veri varsa çakışmayı hesapla ve genel yüzde ile çarp
-
+        // sadece birinde veya her ikisinde de veri yoksa çakışma yok demektir
         if (rule1_sub_datas.length != 0 && rule2_sub_datas.length != 0) {
           const rule1_sub_data_list = createSubDataList(
             rule1_sub_data.kaynak_ports,
@@ -232,10 +228,6 @@ export function analysisRuleConflicts(rules) {
             " - ",
             second_rule_total_conflict
           );
-        } else if (rule1_sub_datas.length == 0 || rule2_sub_datas.length == 0) {
-          // herhangi biri boş ise çakışma yoktur.
-          first_rule_total_conflict = 0;
-          second_rule_total_conflict = 0;
         }
       } catch (err) {
         console.log(
@@ -245,15 +237,22 @@ export function analysisRuleConflicts(rules) {
       }
 
       // genel yüzdeler tam sayı ise tam sayı olarak göster
-      const first_conflict =
+      // eğer çakışma tam sayı değilse virgülden sonrasını 8 basamağa yuvarlar-göster
+      // eğer virgüllü şekilde yine 0 ise tam sayı olarak 0 yap
+      let first_conflict_percentage =
         (first_rule_total_conflict * 100.0) % 1 === 0
           ? (first_rule_total_conflict * 100.0).toString()
           : (first_rule_total_conflict * 100.0).toFixed(8);
 
-      const second_conflict =
+      let second_conflict_percentage =
         (second_rule_total_conflict * 100.0) % 1 === 0
           ? (second_rule_total_conflict * 100.0).toString()
           : (second_rule_total_conflict * 100.0).toFixed(8);
+
+      first_conflict_percentage =
+        first_conflict_percentage == 0.0 ? 0 : first_conflict_percentage;
+      second_conflict_percentage =
+        second_conflict_percentage == 0.0 ? 0 : second_conflict_percentage;
 
       const analiz = {
         rule1_id: rule1.id,
@@ -264,16 +263,16 @@ export function analysisRuleConflicts(rules) {
         rule2_sira_no: rule2.sira_no,
         rule1_aciklama: rule1.aciklama,
         rule2_aciklama: rule2.aciklama,
-        rule1_conflict: first_conflict,
-        rule2_conflict: second_conflict,
+        rule1_conflict: first_conflict_percentage,
+        rule2_conflict: second_conflict_percentage,
       };
       console.log("Gönderilen analiz:", analiz);
 
       console.log(
         "####---> En son genel çakışma yüzdeleri(her şey dahil): ",
-        first_rule_total_conflict * 100.0,
+        first_rule_total_conflict,
         " - ",
-        second_rule_total_conflict * 100.0,
+        second_rule_total_conflict,
         "\n\n"
       );
 
@@ -292,6 +291,7 @@ export function analysisRuleConflicts(rules) {
   return analysises;
 }
 
+
 // portlar ve protokoller için tüm alt değerleri alma
 function getSubData(rule) {
   const kaynak_ports_list = getSubKaynakPorts(rule.servisTanim_uyeleri);
@@ -309,6 +309,7 @@ function getSubData(rule) {
 function createSubDataList(kaynak_ports, hedef_ports, protokoller) {
   let sub_datas = [];
 
+  // eğer bir değer yoksa diğerlerini kullanarak alt veri oluştur
   if (kaynak_ports.length != 0) {
     kaynak_ports.forEach((kaynak_port) => {
       if (hedef_ports.length != 0) {
@@ -665,7 +666,7 @@ function calHedefAdresConflict(rule1_hedef_adresler, rule2_hedef_adresler) {
 
 function calculateConflictIpCountV4(adres1, adres2) {
   try {
-    // Address4 constructor'ı sadece string alıyor
+    // Address4 constructor sadece string alıyor
     if (!Address4.isValid(adres1) || !Address4.isValid(adres2)) {
       console.log(`Geçersiz IPv4 adresi: ${adres1} veya ${adres2}`);
       return BigInt(0);
@@ -706,7 +707,7 @@ function calculateConflictIpCountV4(adres1, adres2) {
 
 function calculateConflictIpCountV6(adres1, adres2) {
   try {
-    // Address6 constructor'ı sadece string alıyor
+    // Address6 constructor sadece string alıyor
     if (!Address6.isValid(adres1) || !Address6.isValid(adres2)) {
       console.log(`Geçersiz IPv6 adresi: ${adres1} veya ${adres2}`);
       return BigInt(0);

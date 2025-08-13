@@ -64,7 +64,9 @@ export default function AnalizSonucModal({
                           scope="row"
                           className="px-6 py-2 w-1/10 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                         >
-                          {analiz.rule2_grup_no}.{analiz.rule2_sira_no}
+                          {analizedRule.id == analiz.rule2_id
+                            ? `${analiz.rule1_grup_no}.${analiz.rule1_sira_no}`
+                            : `${analiz.rule2_grup_no}.${analiz.rule2_sira_no}`}
                         </th>
                         <td className=" w-3/10 py-1">
                           <b>1. Kural Açıklaması:</b> {analiz.rule1_aciklama}{" "}

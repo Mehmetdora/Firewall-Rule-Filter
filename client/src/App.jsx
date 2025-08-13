@@ -51,9 +51,9 @@ function App() {
     console.log("Create Modal opened");
   };
 
-  useEffect(() => {
-    //getRules();
-  }, []);
+  /* useEffect(() => {
+    getRules();
+  }, []); */
 
   function getRules() {
     fetch("http://localhost:5050/rules", {
@@ -219,17 +219,13 @@ function App() {
   return (
     <>
       <div>
-        {/* <Navbar /> */}
         <div className="flex items-center  ">
-          {/* Sol boşluk - flex sistemiyle daha iyi hizalanabilir */}
           {isFileUploaded ? <div className="flex-1"></div> : ""}
-          {/* Orta başlık - artık tam genişlik gerekmiyor */}
           <div className="flex-auto text-center">
             <h5 className="text-3xl font-extrabold">
               Firewall Kural Çakışması Analizi
             </h5>
           </div>
-          {/* Sağ buton - artık margin/padding ile daha iyi kontrol */}
 
           {isFileUploaded ? (
             <div className="flex-1 flex justify-end pr-0">
@@ -248,7 +244,7 @@ function App() {
           isAnalysisModalClose={isAnalysisModalClose}
           analysis={analysisModalData}
           setModalClose={setAnalysisModalClose}
-          analizedRule = {analizedRule}
+          analizedRule={analizedRule}
         ></AnalizSonucModal>
         {/* 
             ŞİMDİLİK EKLEM DÜZENLEME GİBİ EK ÖZELLİKLER OLMADAN 
@@ -269,7 +265,7 @@ function App() {
             rules={rules}
             setAnalysisModalClose={setAnalysisModalClose}
             setAnalysisModalData={setAnalysisModalData}
-            setAnalizedRule = {setAnalizedRule}
+            setAnalizedRule={setAnalizedRule}
           />
         </div>
 

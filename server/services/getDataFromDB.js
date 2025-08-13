@@ -11,10 +11,10 @@ export async function runSqlFileOnce(fullPath, fileType) {
   let importCommand;
 
   if (fileType === "custom") {
-    // pg_restore direkt test_db'ye restore eder
+    // pg_restore ana yolu ile gelen dosyayı çalıştırıyor 
     importCommand = `/opt/homebrew/opt/postgresql@16/bin/pg_restore -U postgres -d ${dbName} "${fullPath}"`;
   } else {
-    // psql dosyayı test_db'ye yükler
+    // eğer dosya türü custom değiş ise psql ile yükleniyor(garanti olsun diye, bazıları pg_restore ile yüklenmiyor)
     importCommand = `psql -U postgres -d ${dbName} -f "${fullPath}"`;
   }
 
@@ -43,35 +43,35 @@ export async function runSqlFileOnce(fullPath, fileType) {
       // stderr her zaman hata değildir, ama burada loglamak iyi olur
     }
 
-    console.log("===> SQL dosyası başarıyla içe aktarıldı.");
+    console.log("===> SQL dosyası içeri aktarıldı.");
     return true;
   } catch (error) {
-    console.error("Import işlemi başarısız:", error.message);
+    console.error("----> Import işlemi başarısız:", error.message);
     return false;
   }
 }
 
 export default async function get_tb_guvenlikKurallari() {
   try {
-    // SQL'den verileri al
+    // tablodaki verileri çekmek için kullanılacak komut
     const command = `psql -U postgres -d test_db -c 'SELECT row_to_json(t) FROM (SELECT * FROM "public"."tb_guvenlikKurallari") t'`;
 
-    console.log("===> 2. Komut çalıştırılıyor...");
+    console.log("===> tablodan veri çekiliyor...");
     const { stderr2, stdout } = await execAsync(command);
     if (stderr2) {
-      console.log("2. exec fonk. hatası: ", stderr2);
+      console.log("----> tablodan veri çekme komut hatası: ", stderr2);
       return;
     }
-    console.log("===> 2. Komut tamamlandı.");
+    console.log("===> tablodan veri başarıyla çekildi.");
 
     if (stdout.length === 0) {
       return []; // veri yok
     }
 
-    // stdout'u satırlara böl
+    // stdout'u satırlara bölerek json haline getirme
     const lines = stdout.split("\n");
 
-    // JSON satırlarını filtrele
+    // her satırı temizle ve tüm satırları birleştir ve ayır sonra json objesi haline getir
     const jsonObjects = lines
       .map((line) => line.trim())
       .filter((line) => line.startsWith("{") && line.endsWith("}"));
@@ -87,12 +87,12 @@ export default async function get_tb_guvenlikKurallari() {
       })
       .filter((obj) => obj !== null);
 
-    console.log("Parsed tb_guvenlikKurallari verisi:", jsonRules[0]);
+    console.log("Parse edilmiş tb_guvenlikKurallari verisi:", jsonRules[0]);
 
     return jsonRules;
   } catch (error) {
-    console.error("getDataFromDB servis hatası:", error.message);
-    throw error; // controller'daki try/catch'e gider
+    console.error("tb_guvenlikKurallari verilerini getiren fonk. hatası:", error.message);
+    throw error; // controllerdaki try-cache gider
   }
 }
 
@@ -104,25 +104,23 @@ export async function get_tb_servisTanimlari() {
     */
 
   try {
-    // SQL'den verileri al
+    // tablo kayıtlarını getir
     const command = `psql -U postgres -d test_db -c 'SELECT row_to_json(t) FROM (SELECT * FROM "public"."tb_servisTanimlari") t'`;
 
-    console.log("===> 2. Komut çalıştırılıyor...");
+    console.log("===>  tablodan veri çekiliyor...");
     const { stderr2, stdout } = await execAsync(command);
     if (stderr2) {
-      console.log("2. exec fonk. hatası: ", stderr2);
+      console.log("----> tabloda veri çekme komut hatası: ", stderr2);
       return;
     }
-    console.log("===> 2. Komut tamamlandı.");
+    console.log("===> tablodan veri çekme komutu tamamlandı.");
 
     if (stdout.length === 0) {
       return []; // veri yok
     }
 
-    // stdout'u satırlara böl
-    const lines = stdout.split("\n");
 
-    // JSON satırlarını filtrele
+    const lines = stdout.split("\n");
     const jsonObjects = lines
       .map((line) => line.trim())
       .filter((line) => line.startsWith("{") && line.endsWith("}"));
@@ -138,12 +136,12 @@ export async function get_tb_servisTanimlari() {
       })
       .filter((obj) => obj !== null);
 
-    console.log("Parsed tb_servisTanimlari verisi:", jsonRules[0]);
+    console.log("Parse edilmiş tb_servisTanimlari verisi:", jsonRules[0]);
 
     return jsonRules;
   } catch (error) {
-    console.error("getDataFromDB servis hatası:", error.message);
-    throw error; // controller'daki try/catch'e gider
+    console.error("tb_servisTanimlari verilerini getiren fonk. hatası:", error.message);
+    throw error; 
   }
 }
 
@@ -155,24 +153,21 @@ export async function get_tb_servisTanimlari_uyeler() {
     */
 
   try {
-    // SQL'den verileri al
+
     const command = `psql -U postgres -d test_db -c 'SELECT row_to_json(t) FROM (SELECT * FROM "public"."tb_servisTanimlari_uyeler") t'`;
-    console.log("===> 2. Komut çalıştırılıyor...");
+    console.log("===> tablodan verileri çekecek komut çalıştırılıyor...");
     const { stderr2, stdout } = await execAsync(command);
     if (stderr2) {
-      console.log("2. exec fonk. hatası: ", stderr2);
+      console.log("----> tablodan verileri çeken komut hatası: ", stderr2);
       return;
     }
-    console.log("===> 2. Komut tamamlandı.");
+    console.log("===> veri çekme komutu tamamlandı.");
 
     if (stdout.length === 0) {
       return []; // veri yok
     }
 
-    // stdout'u satırlara böl
     const lines = stdout.split("\n");
-
-    // JSON satırlarını filtrele
     const jsonObjects = lines
       .map((line) => line.trim())
       .filter((line) => line.startsWith("{") && line.endsWith("}"));
@@ -188,12 +183,12 @@ export async function get_tb_servisTanimlari_uyeler() {
       })
       .filter((obj) => obj !== null);
 
-    console.log("Parsed tb_servisTanimlari_uyeler verisi:", jsonRules[0]);
+    console.log("Parse edilmiş tb_servisTanimlari_uyeler verisi:", jsonRules[0]);
 
     return jsonRules;
   } catch (error) {
-    console.error("getDataFromDB servis hatası:", error.message);
-    throw error; // controller'daki try/catch'e gider
+    console.error("tablodan tb_servisTanimlari_uyeler verilerini çeken fonk. hatası:", error.message);
+    throw error; 
   }
 }
 
@@ -205,24 +200,21 @@ export async function get_tb_guvenlikKurallari_gruplari() {
     */
 
   try {
-    // SQL'den verileri al
     const command = `psql -U postgres -d test_db -c 'SELECT row_to_json(t) FROM (SELECT * FROM "public"."tb_guvenlikKurallari_gruplari") t'`;
-    console.log("===> 2. Komut çalıştırılıyor...");
+    console.log("===> tablodan verileri çeken komut çalıştırılıyor...");
     const { stderr2, stdout } = await execAsync(command);
     if (stderr2) {
-      console.log("2. exec fonk. hatası: ", stderr2);
+      console.log("tablodan verileri çeken komut hatası: ", stderr2);
       return;
     }
-    console.log("===> 2. Komut tamamlandı.");
+    console.log("===> tablodan verileri çeken komut tamamlandı.");
 
     if (stdout.length === 0) {
       return []; // veri yok
     }
 
-    // stdout'u satırlara böl
-    const lines = stdout.split("\n");
 
-    // JSON satırlarını filtrele
+    const lines = stdout.split("\n");
     const jsonObjects = lines
       .map((line) => line.trim())
       .filter((line) => line.startsWith("{") && line.endsWith("}"));
@@ -238,12 +230,12 @@ export async function get_tb_guvenlikKurallari_gruplari() {
       })
       .filter((obj) => obj !== null);
 
-    console.log("Parsed tb_guvenlikKurallari_gruplari verisi:", jsonGroups[0]);
+    console.log("Parse edilmiş  tb_guvenlikKurallari_gruplari verisi:", jsonGroups[0]);
 
     return jsonGroups;
   } catch (error) {
-    console.error("getDataFromDB servis hatası:", error.message);
-    throw error; // controller'daki try/catch'e gider
+    console.error("----> tablodan tb_guvenlikKurallari_gruplari verilerini çeken fonk. hatası:", error.message);
+    throw error; 
   }
 }
 
@@ -255,15 +247,14 @@ export async function get_tb_servis_atama() {
     */
 
   try {
-    // SQL'den verileri al
     const command = `psql -U postgres -d test_db -c 'SELECT row_to_json(t) FROM (SELECT * FROM "public"."tb_servis_atama") t'`;
-    console.log("===> 2. Komut çalıştırılıyor...");
+    console.log("===> tablodan verileri çeken komut çalıştırılıyor...");
     const { stderr2, stdout } = await execAsync(command);
     if (stderr2) {
-      console.log("2. exec fonk. hatası: ", stderr2);
+      console.log("----> tablodan verileri çeken komut hatası: ", stderr2);
       return;
     }
-    console.log("===> 2. Komut tamamlandı.");
+    console.log("===> tablodan verileri çeken komut tamamlandı.");
 
     if (stdout.length === 0) {
       return []; // veri yok
@@ -271,8 +262,6 @@ export async function get_tb_servis_atama() {
 
     // stdout'u satırlara böl
     const lines = stdout.split("\n");
-
-    // JSON satırlarını filtrele
     const jsonObjects = lines
       .map((line) => line.trim())
       .filter((line) => line.startsWith("{") && line.endsWith("}"));
@@ -288,12 +277,12 @@ export async function get_tb_servis_atama() {
       })
       .filter((obj) => obj !== null);
 
-    console.log("Parsed tb_servis_atama verisi:", jsonRules[0]);
+    console.log("Parse edilmiş tb_servis_atama verisi:", jsonRules[0]);
 
     return jsonRules;
   } catch (error) {
-    console.error("getDataFromDB servis hatası:", error.message);
-    throw error; // controller'daki try/catch'e gider
+    console.error("----> tablodan tb_servis_atama verilerini çeken fonk. hatası:", error.message);
+    throw error; 
   }
 }
 
@@ -334,11 +323,11 @@ export function createFullRule(
       servisler.push(servis);
     });
 
+    // grup bilgisini ekle
     const group_sira_no = guvenlikKurallari_gruplari.find(
       (item) => item.id == guvenlikKurali.grup_id
     );
 
-    // Her güvenlikKurali'ndan kaynakAdres ve hedefAdres bilgisini topla
 
     fullRule = {
       id: guvenlikKurali.id,
