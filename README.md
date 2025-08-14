@@ -88,3 +88,13 @@ Bu proje PostgreSQL’den alınmış bir **SQL dump** dosyasındaki güvenlik ku
 * Sunucunun `psql - pg_restore` komutlarına erişebilmesi gerekir.
 
 * Dump içeriğinde yukarıdaki tablolar yoksa tam Rule oluşturma **eksik** kalır, proje çalışmaz.
+
+<br/>
+<img width="1072" height="702" alt="Screen Shot 2025-08-14 at 10 28 17 AM" src="https://github.com/user-attachments/assets/e6a58b31-35d0-42de-a26b-8a0e33843c6a" />
+<img width="2638" height="1656" alt="Screen Shot 2025-08-14 at 10 29 33 AM" src="https://github.com/user-attachments/assets/483f79d3-1045-431d-bac6-36b52b040ab6" />
+<img width="2666" height="1636" alt="Screen Shot 2025-08-14 at 10 30 02 AM" src="https://github.com/user-attachments/assets/0e3d344c-c7be-4dff-a4d0-af90656c12e6" />
+<img width="2630" height="1632" alt="Screen Shot 2025-08-14 at 10 30 18 AM" src="https://github.com/user-attachments/assets/ff8d58d6-75b8-4642-8240-1b61a67929d0" />
+
+
+
+
